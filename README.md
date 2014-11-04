@@ -128,7 +128,7 @@ simplified (see further above) to a single constant value. As with all Perl 6
 objects, this is also the method which gets called when the object is coerced
 to a number by other means, e.g. context or the + prefix.
 
-#### .perl()
+#### .perl() - DANGER
 
 DO NOT call .perl on a Math::Symbolic object, as circular references exist in
 parts of the internals, and will cause an endless loop. This method will be
