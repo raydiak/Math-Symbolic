@@ -13,6 +13,8 @@ well as the beginnings of a project roadmap.
 
 TODO
 
+    Math::Symbolic.new("y=m*x+b").isolate("x").Str.say; # x=(y-b)/m
+
 ## Usage
 
 ### Command line
