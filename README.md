@@ -1,13 +1,17 @@
 # Math::Symbolic
 
 This is a Perl 6 symbolic math module. It parses, manipulates, evaluates, and
-outputs mathematical expressions and relations. This module is pre-alpha
+outputs mathematical expressions and relations. This module is PRE-ALPHA
 quality.
 
 This document talks almost as much about what doesn't yet exist and what could
 exist, as it does about what is already there. This is quite intentional and is
 meant to serve as an invitation and inspiration to prospective contributors, as
 well as the beginnings of a project roadmap.
+
+## Synopsis
+
+TODO
 
 ## Usage
 
@@ -191,3 +195,7 @@ The available operations and syntax in order of precedence are currently:
 ## TODO
 
 See above.
+
+## BUGS
+
+Many, in all likelihood.  Please report.  Patches graciously accepted.
