@@ -128,6 +128,14 @@ simplified (see further above) to a single constant value. As with all Perl 6
 objects, this is also the method which gets called when the object is coerced
 to a number by other means, e.g. context or the + prefix.
 
+#### .perl()
+
+DO NOT call .perl on a Math::Symbolic object, as circular references exist in
+parts of the internals, and will cause an endless loop. This method will be
+overridden to not choke in the future, or the data structure will be revised.
+In the mean time, use .dump_tree if you're trying to see the contents of the
+object's tree structure.
+
 ## Syntax and Operations
 
 All whitespace is currently optional. Implicit operations, e.g. multiplication
@@ -140,8 +148,8 @@ The available operations and syntax in order of precedence are currently:
 * Terms
     * Variables
         * mixed-case alphabetic and "_" are valid in variable names
-    * Numerical Constants
-        * optional - sign
+    * Values
+        * optional sign (only "-" for now)
         * E notation supported
             * case insensitive
             * no restriction on value of exponent, with sign and decimal
