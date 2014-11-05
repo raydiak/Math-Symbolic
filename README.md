@@ -125,18 +125,22 @@ Returns the expression re-assembled into a string by the same syntactic
 constructs which govern parsing. As with all Perl 6 objects, this is also the
 method which gets called when the object is coerced to a string by other means,
 e.g. interpolation, context, or the ~ prefix. The .gist() method is also
-handled by this routine, for easy printing of a readable result. In addition,
-passing the result of .Str() back in to .new() should always yield a
+handled by this routine, for easy printing of a readable result.
+
+Passing the result of .Str() back in to .new() should always yield a
 mathematically equivalent structure (exact representation may vary by some
 auto-simplification), giving the same type of round-trip characteristics to
-expressions that .perl and EVAL provide for Perl 6 objects. This allows a user
+expressions that .perl() and EVAL() provide for Perl 6 objects. This allows a user
 to, for instance, isolate a variable in an equation, then plug the result in to
-.evaluate() for that variable in a different equation, all with the simplicity of
-strings and no additional API (albeit at a steep performance penalty).
+.evaluate() for that variable in a different equation, all with the simplicity
+of strings; no additional classes or APIs for the user to worry about (albeit
+at a steep performance penalty).
 
-TODO the example here won't actually work without an intervening s/\w+=// to
-convert the isolation result from an equation to a relation. Do something about
-that, and generally think more about relations vs expressions.
+TODO the example here won't actually work without an intervening s:s/ \w+ \= //
+to convert the isolation result from an equation to a relation. Do something
+about that, and generally think more about relations vs expressions, especially
+as pertains to complexity of the public API. This issue is orthogonal to the
+use of strings vs objects.
 
 #### .Numeric()
 
@@ -179,6 +183,8 @@ The available operations and syntax in order of precedence are currently:
 * Infix Operation
     * Power
         * ^ Exponentiation, like perl's **
+            * mathematical convention dictates that this operation be chained
+            right-to-left, which is NYI
         * ^/ Root, x^/n is the same as x^(1/n), or ⁿ√x
             * this is temporary until there is support for √ which doesn't exist
             yet because the order of its operands is backwards from its inverse
