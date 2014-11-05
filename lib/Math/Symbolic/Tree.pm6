@@ -117,3 +117,8 @@ method Numeric () {
     CATCH { die "Cannot convert '{self}' to a number: a single constant is required; eliminate any remaining variables with .evaluate() first." }
 }
 
+method clone () {
+    self.new( :$.type, :$.content, :children(@.children».clone) );
+}
+
+

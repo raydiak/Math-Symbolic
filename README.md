@@ -54,6 +54,11 @@ Creates a new Math::Symbolic object, initialized with the tree resulting from a
 parse of $expression (which may also be a relation; currently only "=" equality
 is supported for relations).
 
+#### .clone()
+
+Returns a clone of the object with an independent copy of the tree structure.
+This is important because all manipulations (below) are done in place, and cloning avoids the parsing and autosimplifying overhead of .new().
+
 #### .isolate(Str:D $var)
 
 Arranges a relation with $var on the left and everything else on the right.  Or

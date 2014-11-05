@@ -17,7 +17,7 @@ my %syn := Math::Symbolic::Language.by_syntax;
 
 has $.tree handles <Str Numeric count>;
 
-method new ($in, *%args is copy) {
+method new (Str:D $in, *%args is copy) {
     # TODO this is by far the slowest part, over 2.4 seconds for 'x=(-b+(b^2-4*a*c)^.5)/(2*a)' on an A4-3305M
         # by comparison, is only takes .55 seconds to simplify, isolate 'c', and simplify again, once parsing is complete
     my $parse = Math::Symbolic::Grammar.parse($in);
@@ -34,6 +34,9 @@ method new ($in, *%args is copy) {
     $obj;
 }
 
+method clone () {
+    self.bless: :tree(self.tree.clone);
+}
 method evaluate (*%vals) {
     for %vals.kv -> $var, $val {
         my $subtree = self.new($val).tree;
