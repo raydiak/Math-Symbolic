@@ -391,3 +391,11 @@ method dump_tree ($tree? is copy, $level = 0) {
        self.dump_tree($_, $level+1);
     }
 }
+
+method perl () {
+    my $str = self.HOW.name(self);
+    $str ~= '.new(' ~ self.Str.perl ~ ')' if defined self;
+    $str;
+}
+
+
