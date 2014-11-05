@@ -126,13 +126,13 @@ constructs which govern parsing. As with all Perl 6 objects, this is also the
 method which gets called when the object is coerced to a string by other means,
 e.g. interpolation, context, or the ~ prefix.
 
-#### .Num() - UNTESTED
+#### .Numeric()
 
 Returns the expression coerced first to a string (see above), then to a number.
-This will likely blow up if the expression hasn't already been evaluated/
-simplified (see further above) to a single constant value. As with all Perl 6
-objects, this is also the method which gets called when the object is coerced
-to a number by other means, e.g. context or the + prefix.
+This will fail if the expression hasn't already been evaluated/simplified (see
+further above) to a single constant value. As with all Perl 6 objects, this is
+also the method which gets called when the object is coerced to a number by
+other means, e.g. context or the + prefix.
 
 ## Syntax and Operations
 

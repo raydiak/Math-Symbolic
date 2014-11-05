@@ -11,12 +11,11 @@ class Math::Symbolic;
 
 use Math::Symbolic::Grammar;
 use Math::Symbolic::Language;
+
 my %ops := Math::Symbolic::Language.by_name;
 my %syn := Math::Symbolic::Language.by_syntax;
 
-has $.tree handles <Str count>;
-
-method Num () { .Str.Num }
+has $.tree handles <Str Numeric count>;
 
 method new ($in, *%args is copy) {
     # TODO this is by far the slowest part, over 2.4 seconds for 'x=(-b+(b^2-4*a*c)^.5)/(2*a)' on an A4-3305M
@@ -183,7 +182,7 @@ method simplify () {
                     }
                 }
 
-                if !$hit && (my $eval = $func.eval) && $node.children.all.type eq 'value' {
+                if !$hit && (my $eval = &($func.eval)) && $node.children.all.type eq 'value' {
                     $node.type = 'value';
                     $node.content = $eval( |@($node.children».content) );
                     $node.children = ();
@@ -398,4 +397,5 @@ method perl () {
     $str;
 }
 
+method gist () { self.Str }
 

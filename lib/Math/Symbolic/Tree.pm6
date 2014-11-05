@@ -72,6 +72,8 @@ method count () {
 }
 
 method Str () {
+    return '' unless defined self;
+
     given $.type {
         when 'operation' {
             my $op = $.content;
@@ -110,5 +112,8 @@ method Str () {
     }
 }
 
-
+method Numeric () {
+    +self.Str;
+    CATCH { die "Cannot convert '{self}' to a number: a single constant is required; eliminate any remaining variables with .evaluate() first." }
+}
 
