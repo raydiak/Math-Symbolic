@@ -56,7 +56,7 @@ token sign { \+ | \- }
 token value { <sign>? [ \.\d+ | \d+[\.\d*]? ] }
 token constant { <value> [:i e <value>]? }
 
-token variable { <alpha>+ }
+token variable { <alpha> <alnum>* }
 rule term { \s* [<variable>|<constant>] }
 
 token operation {

@@ -161,7 +161,9 @@ The available operations and syntax in order of precedence are currently:
 
 * Terms
     * Variables
-        * mixed-case alphabetic and "_" are valid in variable names
+        * valid characters for variable names are alphanumerics and underscore
+        * first character must not be a number, mainly to avoid collisions with
+        E notation (see below)
     * Values
         * optional sign (only "-" for now)
         * E notation supported
