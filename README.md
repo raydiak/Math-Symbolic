@@ -13,7 +13,7 @@ well as the beginnings of a project roadmap.
 
 TODO
 
-    Math::Symbolic.new("y=m*x+b").isolate("x").Str.say; # x=(y-b)/m
+    say Math::Symbolic.new("y=m*x+b").isolate("x"); # x=(y-b)/m
 
 ## Usage
 
@@ -94,11 +94,11 @@ will become useful.
 
 #### .simplify()
 
-Makes a childish attempt to reduce the complexity of the expression by inlining
-operations on constants, removing operations on identity values (and eventually
-other special cases like 0, inverse identity, etc). Also already does a very
-small number of rearrangements of combinations of operations, like transforming
-a/b/c into a\*c/b.
+Makes a childish attempt to reduce the complexity of the expression by
+evaluating operations on constants, removing operations on identity values (and
+eventually other special cases like 0, inverse identity, etc). Also already
+does a very small number of rearrangements of combinations of operations, like
+transforming a/b/c into a\*c/b.
 
 .simplify is currently always called at the end of .new, .isolate, and
 .evaluate, making calling it directly pointless in most cases. An option to
@@ -108,7 +108,7 @@ This method is another candidate for the network-searching discussed above
 under .isolate(), or at least more extensive use of the properties of the
 operations, instead of hard-coded patterns of reduction.
 
-#### .count() - UNTESTED
+#### .count()
 
 Returns the number of nodes in the expression's tree. This could be useful to
 determine if an expression has been fully evaluated, or used as a crude
@@ -121,10 +121,22 @@ string instead, and perhaps be renamed.
 
 #### .Str()
 
-Returns the expression re-assembled into a string by the same syntatic
+Returns the expression re-assembled into a string by the same syntactic
 constructs which govern parsing. As with all Perl 6 objects, this is also the
 method which gets called when the object is coerced to a string by other means,
-e.g. interpolation, context, or the ~ prefix.
+e.g. interpolation, context, or the ~ prefix. The .gist() method is also
+handled by this routine, for easy printing of a readable result. In addition,
+passing the result of .Str() back in to .new() should always yield a
+mathematically equivalent structure (exact representation may vary by some
+auto-simplification), giving the same type of round-trip characteristics to
+expressions that .perl and EVAL provide for Perl 6 objects. This allows a user
+to, for instance, isolate a variable in an equation, then plug the result in to
+.evaluate() for that variable in a different equation, all with the simplicity of
+strings and no additional API (albeit at a steep performance penalty).
+
+TODO the example here won't actually work without an intervening s/\w+=// to
+convert the isolation result from an equation to a relation. Do something about
+that, and generally think more about relations vs expressions.
 
 #### .Numeric()
 
@@ -192,4 +204,4 @@ See above.
 
 ## BUGS
 
-Many, in all likelihood.  Please report.  Patches graciously accepted.
+Many, in all likelihood. Please report them to raydiak@cyberuniverses.com. Patches graciously accepted.
