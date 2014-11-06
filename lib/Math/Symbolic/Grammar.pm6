@@ -1,3 +1,4 @@
+#use Grammar::Debugger;
 grammar Math::Symbolic::Grammar;
 
 # should have planned precedence levels:
@@ -115,10 +116,10 @@ rule infix_operation_chain { <@( reverse @in_chains )> }
 ]]]
 
 token prefix_operation { <prefix_operator> <prefix_term> }
-token prefix_operator { @(@pre».parts[0]) }
+token prefix_operator { @(@pre».parts»[0]) }
 
 token postfix_operation { <postfix_term> <postfix_operator> }
-token postfix_operator { @(@post».parts[0]) }
+token postfix_operator { @(@post».parts»[0]) }
 
 rule circumfix_operation { (<circumfix_open>) <expression> (<circumfix_close>) <?{ %circ{$0} eq $1 }> }
 token circumfix_open { @(%circ.keys) }
