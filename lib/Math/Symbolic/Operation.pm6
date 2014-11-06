@@ -15,6 +15,7 @@ class Math::Symbolic::Syntax {
     has $.arity;
     has $.type; # prefix, postfix, infix, circumfix
     has $.precedence;
+    has Bool $.reverse = False;
     has @.parts;
     has $.key = @!parts.join: '';
 
@@ -23,7 +24,9 @@ class Math::Symbolic::Syntax {
 
         given $.type {
             when 'infix' {
-                $str = @args.join: @.parts[0];
+                $str = [@args];
+                $str .= reverse if $.reverse;
+                $str .= join: @.parts[0];
             }
             when 'prefix' {
                 $str = @.parts[0] ~ @args[0];

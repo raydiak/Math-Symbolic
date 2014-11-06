@@ -161,7 +161,7 @@ other means, e.g. context or the + prefix.
 All whitespace is currently optional. Implicit operations, e.g. multiplication
 by putting two variables in a row with no infix operator, is not supported, and
 likely never will be. It leads to far too many consequences, compromises,
-complexities and non-determinisms, mainly in the syntax/parsing.
+complexities and non-determinisms.
 
 The available operations and syntax in order of precedence are currently:
 
@@ -186,19 +186,21 @@ The available operations and syntax in order of precedence are currently:
 * Postfix
     * ! Factorial
         * syntax only, no functional implementation
+    * ² Square (same as ^ 2)
 * Prefix
     * - Negate (same as * -1)
+    * √ Square Root (same as ^ .5)
 * Infix Operation
     * Power
         * ^ Exponentiation, like perl's **
             * mathematical convention dictates that this operation be chained
             right-to-left, which is NYI
-        * ^/ Root, x^/n is the same as x^(1/n), or ⁿ√x
-            * this is temporary until there is support for √ which doesn't exist
-            yet because the order of its operands is backwards from its inverse
-            op, which is NYI
+        * √ Root, n√x is the same as x^(1/n)
             * evaluates to positive only (± NYI)
-            * imaginary numbers NYI, haven't even tried -1^/2
+            * imaginary numbers NYI
+            * ^/ is a Texan variant of √ with the operands reversed
+                * x^/n is the same as x^(1/n) or n√x
+        * Logarithms are NYI, so no solving for variables in exponents yet
     * Scale
         * * Multiplication
         * / Division

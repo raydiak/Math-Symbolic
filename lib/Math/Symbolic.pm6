@@ -19,7 +19,7 @@ has $.tree handles <Str Numeric count>;
 
 method new (Str:D $in, *%args is copy) {
     # TODO this is by far the slowest part, over 2.4 seconds for 'x=(-b+(b^2-4*a*c)^.5)/(2*a)' on an A4-3305M
-        # by comparison, is only takes .55 seconds to simplify, isolate 'c', and simplify again, once parsing is complete
+        # by comparison, it only takes .55 seconds to simplify, isolate 'c', and simplify again, once parsing is complete
     my $parse = Math::Symbolic::Grammar.parse($in);
 
     die 'Parse failure: invalid expression' unless $parse;
@@ -64,7 +64,7 @@ method simplify () {
         $hit = False;
         my $node;
 
-        if $node = $tree.find( :type<operation>, :content(%ops<negate>), :children(
+        if $node = $tree.find( :type<operation>, :content<negate>, :children(
             {:type<value>,},
         ) ) {
             $node.type = 'value';
@@ -73,17 +73,17 @@ method simplify () {
             $hit = True;
         }
 
-        elsif $node = $tree.find( :type<operation>, :content(%ops{'add'|'subtract'}), :children(
+        elsif $node = $tree.find( :type<operation>, :content('add'|'subtract'), :children(
             *,
-            {:type<operation>, :content(%ops<negate>)}
+            {:type<operation>, :content<negate>}
         ) ) {
             $node.content = $node.content.function.inverse;
             $node.children[1] = $node.children[1].children[0];
             $hit = True;
         }
 
-        elsif $node = $tree.find( :type<operation>, :content(%ops<negate>), :children(
-            {:type<operation>, :content(%ops<negate>)},
+        elsif $node = $tree.find( :type<operation>, :content<negate>, :children(
+            {:type<operation>, :content<negate>},
         ) ) {
             my $child = $node.children[0].children[0];
             $node.type = $child.type;
@@ -92,17 +92,47 @@ method simplify () {
             $hit = True;
         }
 
-        elsif $node = $tree.find( :type<operation>, :content(%ops{'power'|'root'}), :children(
+        elsif $node = $tree.find( :type<operation>, :content('power'|'root'), :children(
             *,
-            {:type<value>, :content(-1)}
+            {:type<operation>, :content<negate>}
         ) ) {
+            $node.children[1] = $node.children[1].children[0];
+            $node.children[1] = $node.clone;
             $node.content = %ops<divide>;
-            $node.children[1] = $node.children[0];
             $node.children[0] = Math::Symbolic::Tree.new(:type<value>, :content(1));
             $hit = True;
         }
 
-        elsif $node = $tree.find( :type<operation>, :content(%ops{'multiply'|'divide'}), :children(
+        elsif $node = $tree.find( :type<operation>, :content('power'|'root'), :children(
+            *,
+            {:type<value>, :content(* < 0)}
+        ) ) {
+            $node.children[1].content *= -1;
+            $node.children[1] = $node.clone;
+            $node.content = %ops<divide>;
+            $node.children[0] = Math::Symbolic::Tree.new(:type<value>, :content(1));
+            $hit = True;
+        }
+
+        elsif $node = $tree.find( :type<operation>, :content<power>, :children(
+            *,
+            {:type<value>, :content(2)}
+        ) ) {
+            $node.content = %ops<sqr>;
+            $node.children[1] :delete;
+            $hit = True;
+        }
+
+        elsif $node = $tree.find( :type<operation>, :content<root>, :children(
+            *,
+            {:type<value>, :content(2)}
+        ) ) {
+            $node.content = %ops<sqrt>;
+            $node.children[1] :delete;
+            $hit = True;
+        }
+
+        elsif $node = $tree.find( :type<operation>, :content('multiply'|'divide'), :children(
             *,
             {:type<value>, :content(-1)}
         ) ) {
@@ -111,7 +141,7 @@ method simplify () {
             $hit = True;
         }
 
-        elsif $node = $tree.find( :type<operation>, :content(%ops<multiply>), :children(
+        elsif $node = $tree.find( :type<operation>, :content<multiply>, :children(
             {:type<value>, :content(-1)},
             *
         ) ) {
@@ -120,8 +150,8 @@ method simplify () {
             $hit = True;
         }
 
-        elsif $node = $tree.find( :type<operation>, :content(%ops<divide>), :children(
-            {:type<operation>, :content(%ops<divide>)},
+        elsif $node = $tree.find( :type<operation>, :content<divide>, :children(
+            {:type<operation>, :content<divide>},
             *
         ) ) {
             $node.content = %ops<divide>;
@@ -134,9 +164,9 @@ method simplify () {
             $hit = True;
         }
 
-        elsif $node = $tree.find( :type<operation>, :content(%ops<divide>), :children(
+        elsif $node = $tree.find( :type<operation>, :content<divide>, :children(
             *,
-            {:type<operation>, :content(%ops<divide>)}
+            {:type<operation>, :content<divide>}
         ) ) {
             $node.content = %ops<divide>;
             $node.children[0] = Math::Symbolic::Tree.new(:type<operation>, :content(%ops<multiply>), :children(
@@ -331,9 +361,12 @@ method !convert_parse ($parse, $part = '') {
             } else {
                 $children = [$term, @children.shift];
             }
+            my $op_obj := %syn<infix>{$op};
+            my $syn = $op_obj.syntaxes[ $op_obj.Int ];
+            $children .= reverse if $syn.reverse;
             $node = Math::Symbolic::Tree.new(
                 :type<operation>,
-                :content(%syn<infix>{$op}),
+                :content($op_obj),
                 :$children
             );
         }

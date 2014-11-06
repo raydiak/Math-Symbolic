@@ -124,10 +124,42 @@ my @operations = (
             inverse => 'power',
             :identity(1)
         },
+        :syntaxes(
+            {
+                type => 'infix',
+                precedence  => 1,
+                :reverse,
+                :parts< √ >
+            },
+            {
+                type => 'infix',
+                precedence  => 1,
+                :parts< ^/ >
+            }
+        )
+    ),
+    Op(
+        name => 'sqrt',
+        arity => 1,
+        :function{
+            :eval( * ** .5 ),
+            inverse => 'sqr'
+        },
         :syntax{
-            type => 'infix',
-            precedence  => 1,
-            :parts< ^/ > # later should figure out how to tell it the order of the args so we can have the root number come first like real √ notation
+            type => 'prefix',
+            :parts< √ >
+        }
+    ),
+    Op(
+        name => 'sqr',
+        arity => 1,
+        :function{
+            :eval( * ** 2 ),
+            inverse => 'sqrt'
+        },
+        :syntax{
+            type => 'postfix',
+            :parts< ² >
         }
     ),
     Op(
@@ -187,13 +219,16 @@ sub build_by_syntax () {
     my %by_syntax;
 
     for @operations {
-        my $syn = $_.syntax;
-        next unless $syn && (my $type = $syn.type);
-        my %syn_type := (%by_syntax{$type} //= Hash.new);
-        my $key = $syn.key;
-        my $entry := %syn_type{$key};
-        die "Error: Syntax conflict for $type $key between {$entry.name} and {$_.name}" if $entry;
-        $entry = $_;
+        my @syn = $_.syntaxes;
+        for @syn.keys -> $syn_i {
+            my $syn = @syn[$syn_i];
+            next unless $syn && (my $type = $syn.type);
+            my %syn_type := (%by_syntax{$type} //= Hash.new);
+            my $key = $syn.key;
+            my $entry := %syn_type{$key};
+            die "Error: Syntax conflict for $type $key between {$entry.name} and {$_.name}" if $entry;
+            $entry = $_ but $syn_i.Int;
+        }
     }
 
     return %by_syntax;
