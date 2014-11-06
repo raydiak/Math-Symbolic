@@ -57,7 +57,8 @@ is supported for relations).
 #### .clone()
 
 Returns a clone of the object with an independent copy of the tree structure.
-This is important because all manipulations (below) are done in place, and cloning avoids the parsing and autosimplifying overhead of .new().
+This is important because all manipulations (below) are done in place, and
+cloning avoids the parsing and autosimplifying overhead of .new().
 
 #### .isolate(Str:D $var)
 
