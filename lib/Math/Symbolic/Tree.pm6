@@ -82,20 +82,18 @@ method Str () {
             my $syn = $op.syntax // die "Error: No syntax to stringify for '{$op.name}' operations";
             my @args = @.children».Str;
             my $prec = $syn.precedence;
-            if defined $prec {
-                for ^@args -> $child_i {
-                    my $child = @.children[$child_i];
-                    if $child.type eq 'operation' {
-                        my $this_op = $child.content;
-                        my $this_syn = $this_op.syntax // die "Error: No syntax to stringify for '{$.content.name}' operations";
-                        my $this_prec = $this_syn.precedence;
-                        if defined($prec) && defined($this_prec) and (
-                            $this_prec > $prec or
-                            $child_i > 0 && ($this_prec == $prec) && (!$assoc or $this_op !=== $op)
-                        ) {
-                            # () here is a hard-coded hack and should be looked up as the first defined non-function circumfix
-                            @args[$child_i] = '(' ~ @args[$child_i] ~ ')';
-                        }
+            for ^@args -> $child_i {
+                my $child = @.children[$child_i];
+                if $child.type eq 'operation' {
+                    my $this_op = $child.content;
+                    my $this_syn = $this_op.syntax // die "Error: No syntax to stringify for '{$.content.name}' operations";
+                    my $this_prec = $this_syn.precedence;
+                    if defined($prec) && defined($this_prec) && (
+                        $this_prec > $prec or
+                        $child_i > 0 && ($this_prec == $prec) && (!$assoc or $this_op !=== $op)
+                    ) or $syn.type eq none('infix', 'circumfix', $this_syn.type) {
+                        # () here is a hard-coded hack and should be looked up as the first defined non-function circumfix
+                        @args[$child_i] = '(' ~ @args[$child_i] ~ ')';
                     }
                 }
             }
