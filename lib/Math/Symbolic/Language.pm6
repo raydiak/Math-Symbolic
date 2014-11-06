@@ -16,7 +16,7 @@ my @operations = (
     Op(
         name => 'add',
         :function{
-            :eval( * + * ),
+            :eval( &infix:<+> ),
             inverse => 'subtract',
             :identity(0),
             :commute,
@@ -31,7 +31,7 @@ my @operations = (
     Op(
         name => 'subtract',
         :function{
-            :eval( * - * ),
+            :eval( &infix:<-> ),
             inverse => 'add',
             :identity(0),
             commute => sub ($tree) {
@@ -58,7 +58,7 @@ my @operations = (
     Op(
         name => 'multiply',
         :function{
-            :eval( * * * ),
+            :eval( &infix:<*> ),
             inverse => 'divide',
             :identity(1),
             :commute,
@@ -73,7 +73,7 @@ my @operations = (
     Op(
         name => 'divide',
         :function{
-            :eval( * / * ),
+            :eval( &infix:</> ),
             inverse => 'multiply',
             :identity(1),
             commute => sub ($tree) {
@@ -106,7 +106,7 @@ my @operations = (
     Op(
         name => 'power',
         :function{
-            :eval( * ** * ),
+            :eval( &infix:<**> ),
             inverse => 'root',
             :identity(1)
         },
@@ -182,7 +182,7 @@ my @operations = (
     Op(
         name => 'negate',
         :function{
-            :eval( -* ),
+            :eval( &prefix:<-> ),
             inverse => 'negate'
         },
         :syntax{
