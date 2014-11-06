@@ -32,12 +32,13 @@ method match (*%s) {
     if %s<children> :exists {
         my @child_criteria = %s<children>;
         for ^@child_criteria -> $child_i {
-            my $child = @child_criteria[$child_i];
+            my $child_criteria = @child_criteria[$child_i];
             #next unless $child ~~ Positional && $child.keys;
-            next if $child ~~ Whatever;
-            my %child_params = %$child;
+            next if $child_criteria ~~ Whatever;
+            my %child_params = %$child_criteria;
             next unless %child_params;
-            return False unless self.children[$child_i].match( |%child_params );
+            my $child = self.children[$child_i];
+            return False unless $child.match( |%child_params );
         }
     }
 
