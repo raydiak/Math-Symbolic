@@ -11,20 +11,28 @@ well as the beginnings of a project roadmap.
 
 ## Synopsis
 
-TODO
+Either of
 
-    say Math::Symbolic.new("y=m*x+b").isolate("x"); # x=(y-b)/m
+    symbolic --m=1 --b=0 'y=m*x+b' x
+
+on the command line, or
+    
+    say Math::Symbolic.new("y=m*x+b").isolate("x").evaluate(:m(1), :b(0));
+
+in Perl 6 code, will print
+
+    x=y
 
 ## Usage
 
 ### Command line
 
-A basic command line interface is provided in the root directory of the module
-(meaning it will not be installed to your PATH, for now), called "alg.p6". This
-script is used for testing during development, but may become more useful. It
-takes at least one positional argument: the expression/relation to work with.
-If a second positional is passed, it is the name of the variable to isolate. If
-any named args are passed, they are substituted into the expression for the
+A basic command line program named 'symbolic' is provided, and may be installed
+in your PATH. It takes at least one positional argument: the relation or
+expression to work with.  If a second positional is passed, it is the name of
+the variable to isolate.
+
+If any named args are passed, they are substituted into the expression for the
 variables they name. Each named argument's value is parsed as an expression
 itself, so it doesn't just have to be a numeric value to give the variable.
 
