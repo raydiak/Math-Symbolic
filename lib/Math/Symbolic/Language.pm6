@@ -88,7 +88,6 @@ my @operations = (
     ),
     Op(
         :name<root>,
-        :arity(2),
         :function{
             :eval( * ** (1/*) ),
             :inverse<power>,
@@ -111,7 +110,6 @@ my @operations = (
     ),
     Op(
         :name<sqrt>,
-        :arity(1),
         :function{
             :eval( * ** .5 ),
             :inverse<sqr>
@@ -123,7 +121,6 @@ my @operations = (
     ),
     Op(
         :name<sqr>,
-        :arity(1),
         :function{
             :eval( * ** 2 ),
             :inverse<sqrt>
@@ -200,7 +197,7 @@ for @operations {
         $inv_via = $op;
 
         my $comm := $func.commute;
-        if all(!$comm, $inv_via, $inv, $inv.function.commute === True) {
+        if !$comm && $inv_via && $inv && $inv.function.commute === True {
             $comm = 'inverse';
         }
     }
