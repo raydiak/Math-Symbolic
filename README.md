@@ -39,6 +39,12 @@ itself, so it doesn't just have to be a numeric value to give the variable.
 The resulting expression will be printed after applying all requested
 transformations, and attempting to simplify.
 
+For development of Math::Symbolic itself, there is also a 'symbolic' bash
+script in the module's root directory. This will use the module and command
+line script in the wrapper's directory, instead of the installed versions. It
+also intentionally does not include blib, since precompilation isn't ordinarily
+done during development.
+
 ### API
 
 At the time of this writing, most of the API is too unstable to be worth
