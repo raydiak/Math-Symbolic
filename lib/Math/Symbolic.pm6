@@ -180,6 +180,15 @@ method simplify () {
         #} elsif $node = $tree.find( :type<operation>, :content(* ne 'divide') ) { # example of proper restriction syntax
         }
 
+        elsif $node = $tree.find( :type<operation>, :content<negate>, :children(
+            {:type<operation>, :content<subtract>},
+        ) ) {
+            $node.content = $node.children[0].content;
+            $node.children = $node.children[0].children.reverse;
+            $hit = True;
+        #} elsif $node = $tree.find( :type<operation>, :content(* ne 'divide') ) { # example of proper restriction syntax
+        }
+
         elsif my @nodes = $tree.find_all( :type<operation> ) { # TODO we could use a smarter pattern to not have to re-test every single op in the tree repeatedly
             while @nodes && !$hit {
                 $node = @nodes.shift;
