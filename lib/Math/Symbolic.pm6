@@ -59,6 +59,9 @@ method evaluate (*%vals) {
     # TODO BUG speaking of minimizing complexity in ::Operation, please convert the .function/.syntax/.syntaxes/BUILD mess to Roles soon
 # this is also highly inefficient
 # there is a lot more that could be done with constants here esp. 0 like *0, 0*, 0/, ^0, ^/0...need special cases on ops or something
+# TODO really need to split this into 2
+    # normalize, for making ready for manipulation
+    # simplify, for maximal reduction, probably for display to the user
 method simplify () {
     my $tree = $!tree;
     my $hit = True;
@@ -66,31 +69,12 @@ method simplify () {
         $hit = False;
         my $node;
 
-        if $node = $tree.find( :type<operation>, :content<negate>, :children(
-            {:type<value>,},
-        ) ) {
-            $node.type = 'value';
-            $node.content = -$node.children[0].content;
-            $node.children = ();
-            $hit = True;
-        }
-
-        elsif $node = $tree.find( :type<operation>, :content('add'|'subtract'), :children(
+        if $node = $tree.find( :type<operation>, :content('add'|'subtract'), :children(
             *,
             {:type<operation>, :content<negate>}
         ) ) {
             $node.content = $node.content.function.inverse;
             $node.children[1] = $node.children[1].children[0];
-            $hit = True;
-        }
-
-        elsif $node = $tree.find( :type<operation>, :content<negate>, :children(
-            {:type<operation>, :content<negate>},
-        ) ) {
-            my $child = $node.children[0].children[0];
-            $node.type = $child.type;
-            $node.content = $child.content;
-            $node.children = $child.children;
             $hit = True;
         }
 
@@ -105,6 +89,7 @@ method simplify () {
             $hit = True;
         }
 
+        # x^-n = 1/x^n
         elsif $node = $tree.find( :type<operation>, :content('power'|'root'), :children(
             *,
             {:type<value>, :content(* < 0)}
@@ -116,6 +101,7 @@ method simplify () {
             $hit = True;
         }
 
+        # sqr
         elsif $node = $tree.find( :type<operation>, :content<power>, :children(
             *,
             {:type<value>, :content(2)}
@@ -125,6 +111,7 @@ method simplify () {
             $hit = True;
         }
 
+        # sqrt
         elsif $node = $tree.find( :type<operation>, :content<root>, :children(
             *,
             {:type<value>, :content(2)}
@@ -134,6 +121,7 @@ method simplify () {
             $hit = True;
         }
 
+        # negate
         elsif $node = $tree.find( :type<operation>, :content('multiply'|'divide'), :children(
             *,
             {:type<value>, :content(-1)}
@@ -143,6 +131,7 @@ method simplify () {
             $hit = True;
         }
 
+        # negate
         elsif $node = $tree.find( :type<operation>, :content<multiply>, :children(
             {:type<value>, :content(-1)},
             *
@@ -152,6 +141,15 @@ method simplify () {
             $hit = True;
         }
 
+        # invert -> division
+        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
+            $node.content = %ops<divide>;
+            $node.children[1] = $node.children[0];
+            $node.children[0] = $tree.new(:type<value>, :content(1));
+            $hit = True;
+        }
+
+        # a/b/c -> a*c/b
         elsif $node = $tree.find( :type<operation>, :content<divide>, :children(
             {:type<operation>, :content<divide>},
             *
@@ -166,6 +164,7 @@ method simplify () {
             $hit = True;
         }
 
+        # a/(b/c) -> a*c/b
         elsif $node = $tree.find( :type<operation>, :content<divide>, :children(
             *,
             {:type<operation>, :content<divide>}
@@ -177,19 +176,11 @@ method simplify () {
             ));
             $node.children[1] = $node.children[1].children[0];
             $hit = True;
-        #} elsif $node = $tree.find( :type<operation>, :content(* ne 'divide') ) { # example of proper restriction syntax
         }
 
-        elsif $node = $tree.find( :type<operation>, :content<negate>, :children(
-            {:type<operation>, :content<subtract>},
-        ) ) {
-            $node.content = $node.children[0].content;
-            $node.children = $node.children[0].children.reverse;
-            $hit = True;
-        #} elsif $node = $tree.find( :type<operation>, :content(* ne 'divide') ) { # example of proper restriction syntax
-        }
-
-        elsif my @nodes = $tree.find_all( :type<operation> ) { # TODO we could use a smarter pattern to not have to re-test every single op in the tree repeatedly
+        elsif my @nodes = $tree.find_all( :type<operation> ) {
+            # TODO we could use a smarter pattern to not have to re-test every single op in the tree repeatedly
+            # except now we're doing many things in here
             while @nodes && !$hit {
                 $node = @nodes.shift;
                 my $op = $node.content;
@@ -226,6 +217,28 @@ method simplify () {
                     }
                 }
 
+                # inversion
+                if !$hit && $func.arity == 1 {
+                    my $child = $node.children[0];
+                    if $child.type eq 'operation' {
+                        my $child_op = $child.content;
+                        my $child_func = $child_op.function;
+                        if $child_op.arity == 1 && $func.inverse === $child_op {
+                            $node.type = $child.children[0].type;
+                            $node.content = $child.children[0].content;
+                            $node.children = $child.children;
+                            $hit = True;
+                        } elsif $child_op.arity == 2 && $child_func.commute !=== True &&
+                            $child_func.invert-via === $node.content {
+                            $node.content = $child_op;
+                            $node.children = $child.children.reverse;
+                            self.dump_tree($node);
+                            $hit = True;
+                        }
+                    }
+                }
+
+                # constant folding
                 if !$hit && (my $eval = &($func.eval)) && $node.children.all.type eq 'value' {
                     $node.type = 'value';
                     $node.content = $eval( |@($node.children».content) );
@@ -277,15 +290,11 @@ method isolate (Str:D $var) {
                 my $commute = $func.commute;
                 if $commute {
                     if $commute eq 'inverse' {
-                        $next = $tree.new(
-                            :type<operation>, :content($invop),
-                            :children(
-                                $tree.new(
-                                    :type<operation>, :content($func.invert-via),
-                                    :children( $work.children[1] )
-                                ),
-                                $work.children[0]
-                            )
+                        $next = $work;
+                        $next.children .= reverse;
+                        $next.children[0] = $tree.new(
+                            :type<operation>, :content(%ops{$func.invert-via}),
+                            :children($next.children[0])
                         );
                         $new = False;
                     } else {
@@ -299,19 +308,9 @@ method isolate (Str:D $var) {
             if !defined $new {
                 die "Error: inversion of '$op' is NYI" if $op.arity > 2;
                 my @children = $tree.children[1];
-                if $op.arity > 1 {
-                    @children.push: $work.children[1];
-                } elsif $invop.name eq 'invert' {
-                    my $child = @children[0];
-                    if $child.type eq 'operation' {
-                        if my $child_func = $child.content.function {
-                            if my $inv = $child_func.inverse {
-                                $invop = $inv;
-                                @children = @children[0].children.list;
-                            }
-                        }
-                    }
-                }
+
+                @children.push: $work.children[1] if $op.arity > 1;
+
                 $new = Math::Symbolic::Tree.new(
                     type => 'operation',
                     content => $invop,
