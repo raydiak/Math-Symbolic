@@ -17,15 +17,15 @@ use v6;
 
 use Math::Symbolic;
 
-sub MAIN ($expr, $var?, *%vals) {
-    my $obj = Math::Symbolic.new($expr);
+sub MAIN ($expression, $isolate_var?, *%vars) {
+    my $obj = Math::Symbolic.new($expression);
     #say ~$obj;
     #$obj.dump_tree;
 
-    $obj.isolate($var) if defined $var;
+    $obj.isolate($isolate_var) if defined $isolate_var;
     #$obj.dump_tree;
 
-    $obj.evaluate(|%vals) if %vals;
+    $obj.evaluate(|%vars) if %vars;
     #$obj.dump_tree;
 
     say ~$obj;
