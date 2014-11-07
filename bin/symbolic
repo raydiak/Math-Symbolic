@@ -15,8 +15,6 @@ use v6;
         # clusterable
     # each of these applications is also a good source of feature ideas for the module itself
 
-use lib $?FILE.IO.parent.child('lib');
-
 use Math::Symbolic;
 
 sub MAIN ($expr, $var?, *%vals) {
