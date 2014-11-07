@@ -13,185 +13,168 @@ sub Op (|args) { Math::Symbolic::Operation.new(|args) }
 
 my @operations = (
     Op(
-        name => 'add',
+        :name<add>,
         :function{
             :eval( &infix:<+> ),
-            inverse => 'subtract',
+            :inverse<subtract>,
+            :invert-via<negate>,
             :identity(0),
             :commute,
             :associative,
         },
         :syntax{
-            type => 'infix',
-            precedence => 3,
+            :type<infix>,
+            :precedence(3),
             :parts< + >
         }
     ),
     Op(
-        name => 'subtract',
+        :name<subtract>,
         :function{
             :eval( &infix:<-> ),
-            inverse => 'add',
-            :identity(0),
-            commute => sub ($tree) {
-                $tree.new(
-                    :type<operation>,
-                    :content($?CLASS.by_name<add>),
-                    children => (
-                        $tree.new(
-                            :type<operation>,
-                            :content($?CLASS.by_name<negate>),
-                            :children($tree.children[1])
-                        ),
-                        $tree.children[0]
-                    )
-                )
-            }
+            :inverse<add>,
+            :invert-via<negate>,
+            :identity(0)
         },
         :syntax{
-            type => 'infix',
-            precedence => 3,
+            :type<infix>,
+            :precedence(3),
             :parts< - >
         }
     ),
     Op(
-        name => 'multiply',
+        :name<multiply>,
         :function{
             :eval( &infix:<*> ),
-            inverse => 'divide',
+            :inverse<divide>,
+            :invert-via<invert>,
             :identity(1),
             :commute,
             :associative
         },
         :syntax{
-            type => 'infix',
-            precedence => 2,
+            :type<infix>,
+            :precedence(2),
             :parts< * >
         }
     ),
     Op(
-        name => 'divide',
+        :name<divide>,
         :function{
             :eval( &infix:</> ),
-            inverse => 'multiply',
-            :identity(1),
-            commute => sub ($tree) {
-                $tree.new(
-                    :type<operation>,
-                    :content($?CLASS.by_name<multiply>),
-                    children => (
-                        $tree.new(
-                            :type<operation>,
-                            :content($?CLASS.by_name<power>),
-                            children => (
-                                $tree.children[1],
-                                $tree.new(
-                                    :type<value>,
-                                    :content(-1)
-                                )
-                            )
-                        ),
-                        $tree.children[0]
-                    )
-                )
-            }
+            :inverse<multiply>,
+            :invert-via<invert>,
+            :identity(1)
         },
         :syntax{
-            type => 'infix',
-            precedence => 2,
+            :type<infix>,
+            :precedence(2),
             :parts< / >
         }
     ),
     Op(
-        name => 'power',
+        :name<power>,
         :function{
             :eval( &infix:<**> ),
-            inverse => 'root',
+            :inverse<root>,
+            :invert-via<invert>,
             :identity(1)
         },
         :syntax{
-            type => 'infix',
-            precedence => 1,
+            :type<infix>,
+            :precedence(1),
             :parts< ^ >
         },
     ),
     Op(
-        name => 'root',
-        arity => 2,
+        :name<root>,
+        :arity(2),
         :function{
             :eval( * ** (1/*) ),
-            inverse => 'power',
+            :inverse<power>,
+            :invert-via<invert>,
             :identity(1)
         },
         :syntaxes(
             {
-                type => 'infix',
-                precedence  => 1,
+                :type<infix>,
+                :precedence(1),
                 :reverse,
                 :parts< √ >
             },
             {
-                type => 'infix',
-                precedence  => 1,
+                :type<infix>,
+                :precedence(1),
                 :parts< ^/ >
             }
         )
     ),
     Op(
-        name => 'sqrt',
-        arity => 1,
+        :name<sqrt>,
+        :arity(1),
         :function{
             :eval( * ** .5 ),
-            inverse => 'sqr'
+            :inverse<sqr>
         },
         :syntax{
-            type => 'prefix',
+            :type<prefix>,
             :parts< √ >
         }
     ),
     Op(
-        name => 'sqr',
-        arity => 1,
+        :name<sqr>,
+        :arity(1),
         :function{
             :eval( * ** 2 ),
-            inverse => 'sqrt'
+            :inverse<sqrt>
         },
         :syntax{
-            type => 'postfix',
+            :type<postfix>,
             :parts< ² >
         }
     ),
     Op(
-        name => 'factorial',
+        :name<factorial>,
         :syntax{
-            type => 'postfix',
+            :type<postfix>,
             :parts< ! >
         }
     ),
     Op(
-        name => 'absolute',
+        :name<absolute>,
         :function{
             :eval( *.abs )
         },
         :syntax{
-            type => 'circumfix',
+            :type<circumfix>,
             :parts< | | >
         }
     ),
     Op(
-        name => 'negate',
+        :name<negate>,
         :function{
             :eval( &prefix:<-> ),
-            inverse => 'negate'
+            :inverse<negate>
         },
         :syntax{
-            type => 'prefix',
+            :type<prefix>,
             :parts< - >
         }
     ),
     Op(
+        :name<invert>,
+        :function{
+            :eval( * ** -1 ),
+            :inverse<invert>
+        },
         :syntax{
-            type => 'circumfix',
+            :type<postfix>,
+            :parts< ⁻¹ >
+        }
+    ),
+    Op(
+        :syntax{
+            :type<circumfix>,
             :parts< ( ) >
         }
     ),
@@ -205,10 +188,22 @@ our %.by_name := %by_name;
 for @operations {
     my $func = $_.function;
     next unless $func;
-    my $inv := $func.inverse;
-    next unless $inv ~~ Str;
-    my $op = %by_name{$inv};
-    $inv = $op if $op;
+
+    if my $inv := $func.inverse {
+        my $op = %by_name{$inv};
+        $inv = $op if $op;
+    }
+
+    if my $inv_via := $func.invert-via {
+        my $op = %by_name{$inv_via};
+        die "Cannot find '$inv_via' operation" unless $op;
+        $inv_via = $op;
+
+        my $comm := $func.commute;
+        if all(!$comm, $inv_via, $inv, $inv.function.commute === True) {
+            $comm = 'inverse';
+        }
+    }
 }
 
 #my %by_syntax = build_by_syntax();

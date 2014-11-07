@@ -2,8 +2,14 @@ class Math::Symbolic::Function {
     has $.name;
     has $.arity;
     has &.eval;
-    has $.inverse is rw; # rw so it can be specified as a string but vivified to an object later
-    has $.commute;
+
+    # rw so it can be specified as a string but vivified to an object later
+    has $.inverse is rw;
+    has $.invert-via is rw;
+
+    # rw so it can be pointed at its inverse if appropriate
+    has $.commute is rw;
+
     has $.identity;
     has $.associative;
     

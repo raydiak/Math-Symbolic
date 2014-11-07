@@ -267,9 +267,17 @@ method isolate (Str:D $var) {
             if $i != 0 {
                 my $commute = $func.commute;
                 if $commute {
-                    if $commute ~~ Callable {
-                        # call commute to transform (replace?) the node
-                        $next = $commute($work);
+                    if $commute eq 'inverse' {
+                        $next = $tree.new(
+                            :type<operation>, :content($invop),
+                            :children(
+                                $tree.new(
+                                    :type<operation>, :content($func.invert-via),
+                                    :children( $work.children[1] )
+                                ),
+                                $work.children[0]
+                            )
+                        );
                         $new = False;
                     } else {
                         $work.children .= reverse;
