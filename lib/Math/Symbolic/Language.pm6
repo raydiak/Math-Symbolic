@@ -213,8 +213,9 @@ for @operations {
 
 #my %by_syntax = build_by_syntax();
 our %.by_syntax = build_by_syntax();
+our %.syntax_by_syntax = build_by_syntax(:syntax);
 
-sub build_by_syntax () {
+sub build_by_syntax (Bool :$syntax = False) {
     my %by_syntax;
 
     for @operations {
@@ -226,7 +227,7 @@ sub build_by_syntax () {
             my $key = $syn.key;
             my $entry := %syn_type{$key};
             die "Error: Syntax conflict for $type $key between {$entry.name} and {$_.name}" if $entry;
-            $entry = $_ but $syn_i.Int;
+            $entry = $syntax ?? $syn !! $_;
         }
     }
 

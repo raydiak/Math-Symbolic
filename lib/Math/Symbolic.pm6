@@ -15,6 +15,7 @@ use Math::Symbolic::Language;
 
 my %ops := Math::Symbolic::Language.by_name;
 my %syn := Math::Symbolic::Language.by_syntax;
+my %syn_syn := Math::Symbolic::Language.syntax_by_syntax;
 
 has $.tree handles <Str Numeric count>;
 
@@ -268,7 +269,7 @@ method isolate (Str:D $var) {
                 if $commute {
                     if $commute ~~ Callable {
                         # call commute to transform (replace?) the node
-                        $next = &($commute)($work);
+                        $next = $commute($work);
                         $new = False;
                     } else {
                         $work.children .= reverse;
@@ -362,8 +363,8 @@ method !convert_parse ($parse, $part = '') {
             } else {
                 $children = [$term, @children.shift];
             }
-            my $op_obj := %syn<infix>{$op};
-            my $syn = $op_obj.syntaxes[ $op_obj.Int ];
+            my $op_obj = %syn<infix>{$op};
+            my $syn = %syn_syn<infix>{$op};
             $children .= reverse if $syn.reverse;
             $node = Math::Symbolic::Tree.new(
                 :type<operation>,
