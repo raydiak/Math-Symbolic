@@ -39,7 +39,7 @@ method clone () {
 }
 method evaluate (*%vals) {
     for %vals.kv -> $var, $val {
-        my $subtree = self.new($val).tree;
+        my $subtree = self.new(~$val).tree;
         for $!tree.find_all( :type<symbol>, :content($var) ) {
             $_.type = $subtree.type;
             $_.content = $subtree.content;
