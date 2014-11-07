@@ -9,6 +9,7 @@ class Math::Symbolic;
     # arrange as a polynomial in terms of <var>
     # factor polynomials in simplify and isolate
 
+use Math::Symbolic::Tree;
 use Math::Symbolic::Grammar;
 use Math::Symbolic::Language;
 

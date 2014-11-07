@@ -7,7 +7,6 @@ class Math::Symbolic::Language;
     # think about the ways in which both tree and grammar use these
     # also think about future internal and external use cases, API-wise
 
-use Math::Symbolic::Tree;
 use Math::Symbolic::Operation;
 
 sub Op (|args) { Math::Symbolic::Operation.new(|args) }
@@ -35,14 +34,14 @@ my @operations = (
             inverse => 'add',
             :identity(0),
             commute => sub ($tree) {
-                Math::Symbolic::Tree.new(
+                $tree.new(
                     :type<operation>,
-                    :content(Math::Symbolic::Language.by_name<add>),
+                    :content($?CLASS.by_name<add>),
                     children => (
-                        Math::Symbolic::Tree.new(
+                        $tree.new(
                             :type<operation>,
-                            :content(Math::Symbolic::Language.by_name<negate>),
-                            children => ($tree.children[1])
+                            :content($?CLASS.by_name<negate>),
+                            :children($tree.children[1])
                         ),
                         $tree.children[0]
                     )
@@ -77,16 +76,16 @@ my @operations = (
             inverse => 'multiply',
             :identity(1),
             commute => sub ($tree) {
-                Math::Symbolic::Tree.new(
+                $tree.new(
                     :type<operation>,
-                    :content(Math::Symbolic::Language.by_name<multiply>),
+                    :content($?CLASS.by_name<multiply>),
                     children => (
-                        Math::Symbolic::Tree.new(
+                        $tree.new(
                             :type<operation>,
-                            :content(Math::Symbolic::Language.by_name<power>),
+                            :content($?CLASS.by_name<power>),
                             children => (
                                 $tree.children[1],
-                                Math::Symbolic::Tree.new(
+                                $tree.new(
                                     :type<value>,
                                     :content(-1)
                                 )
