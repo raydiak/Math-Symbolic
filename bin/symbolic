@@ -22,10 +22,10 @@ sub MAIN ($expression, $isolate_var?, *%vars) {
     #say ~$obj;
     #$obj.dump_tree;
 
-    $obj.isolate($isolate_var) if defined $isolate_var;
+    $obj.evaluate(|%vars) if %vars;
     #$obj.dump_tree;
 
-    $obj.evaluate(|%vars) if %vars;
+    $obj.isolate($isolate_var) if defined $isolate_var;
     #$obj.dump_tree;
 
     say ~$obj;
