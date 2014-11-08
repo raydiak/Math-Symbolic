@@ -56,12 +56,13 @@ method find (*%s) {
     return;
 }
 
-method find_all (*%s) {
+method find_all (Bool :$path = False, *%s) {
     my @results;
-    @results.push: self if self.match(|%s);
+    @results.push: $path ?? [] !! self if self.match(|%s);
 
-    for @.children {
-        my @child_results = $_.find_all(|%s);
+    for @.children.kv -> $i, $child {
+        next unless my @child_results = $child.find_all(:$path, |%s);
+        @child_results».unshift: $i if $path;
         @results.push: @child_results;
     }
 
