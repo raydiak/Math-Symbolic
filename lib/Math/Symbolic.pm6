@@ -30,7 +30,8 @@ method new (Str:D $in, *%args is copy) {
     %args<tree> = self!convert_parse($parse);
     my $obj = self.bless: |%args;
     #$obj.dump_tree;
-    $obj.simplify();
+    #$obj.simplify();
+    $obj.normalize();
     #$obj.dump_tree;
 
     $obj;
@@ -49,7 +50,8 @@ method evaluate (*%vals) {
         }
     }
 
-    self.simplify;
+    #self.simplify;
+    self.normalize;
 }
 
 # this whole routine is very dumb and could be made smarter with a limited search through a (lazy?) network of possible manipulations
@@ -69,6 +71,7 @@ method simplify () {
         $hit = False;
         my $node;
 
+        #`[[[
         if $node = $tree.find( :type<operation>, :content('add'|'subtract'), :children(
             *,
             {:type<operation>, :content<negate>}
@@ -77,8 +80,10 @@ method simplify () {
             $node.children[1] = $node.children[1].children[0];
             $hit = True;
         }
+        ]]]
 
-        elsif $node = $tree.find( :type<operation>, :content('power'|'root'), :children(
+        # x^-n = 1/x^n
+        if $node = $tree.find( :type<operation>, :content('power'|'root'), :children(
             *,
             {:type<operation>, :content<negate>}
         ) ) {
@@ -138,14 +143,6 @@ method simplify () {
         ) ) {
             $node.content = %ops<negate>;
             $node.children[0] = $node.children[1]:delete;
-            $hit = True;
-        }
-
-        # invert -> division
-        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
-            $node.content = %ops<divide>;
-            $node.children[1] = $node.children[0];
-            $node.children[0] = $tree.new(:type<value>, :content(1));
             $hit = True;
         }
 
@@ -218,23 +215,156 @@ method simplify () {
                 }
 
                 # inversion
-                if !$hit && $func.arity == 1 {
-                    my $child = $node.children[0];
-                    if $child.type eq 'operation' {
-                        my $child_op = $child.content;
-                        my $child_func = $child_op.function;
-                        if $child_op.arity == 1 && $func.inverse === $child_op {
-                            $node.type = $child.children[0].type;
-                            $node.content = $child.children[0].content;
-                            $node.children = $child.children;
-                            $hit = True;
-                        } elsif $child_op.arity == 2 && $child_func.commute !=== True &&
-                            $child_func.invert-via === $node.content {
-                            $node.content = $child_op;
-                            $node.children = $child.children.reverse;
-                            self.dump_tree($node);
-                            $hit = True;
+                if !$hit {
+                    if $func.arity == 1 {
+                        my $child = $node.children[0];
+                        if $child.type eq 'operation' {
+                            my $child_op = $child.content;
+                            my $child_func = $child_op.function;
+                            if $child_op.arity == 1 && $func.inverse === $child_op {
+                                $node.type = $child.children[0].type;
+                                $node.content = $child.children[0].content;
+                                $node.children = $child.children;
+                                $hit = True;
+                            } elsif $child_op.arity == 2 && $child_func.commute !=== True &&
+                                $child_func.invert-via === $node.content {
+                                $node.content = $child_op;
+                                $node.children = $child.children.reverse;
+                                self.dump_tree($node);
+                                $hit = True;
+                            }
                         }
+                    } elsif $func.arity == 2 {
+                        my $inv_via = $func.invert-via;
+                        if $inv_via {
+                            for 1, 0 -> $i {
+                                my $child := $node.children[$i];
+
+                                if $child.type eq 'operation' &&
+                                    $child.content === $inv_via {
+                                    $node.content = $func.inverse;
+                                    $child = $child.children[0];
+
+                                    $hit = True;
+                                    last;
+                                }
+
+                                last if !$func.commute
+                            }
+                        }
+                    }
+                }
+
+                # constant folding
+                if !$hit && (my $eval = &($func.eval)) && $node.children.all.type eq 'value' {
+                    $node.type = 'value';
+                    $node.content = $eval( |@($node.children».content) );
+                    $node.children = ();
+                    $hit = True;
+                }
+            }
+        }
+
+        # invert -> division - we put this last, so that inversion is preserved for matching against inv-via
+        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
+            $node.content = %ops<divide>;
+            $node.children[1] = $node.children[0];
+            $node.children[0] = $tree.new(:type<value>, :content(1));
+            $hit = True;
+        }
+    }
+
+    self;
+}
+
+method normalize () {
+    my $tree = $!tree;
+    my $hit = True;
+    while $hit {
+        $hit = False;
+        my $node;
+
+        # sqr -> power
+        if $node = $tree.find( :type<operation>, :content<sqr> ) {
+            $node.content = %ops<power>;
+            $node.children[1] = $tree.new( :type<value>, :content(2) );
+            $hit = True;
+        }
+
+        # sqrt -> power
+        elsif $node = $tree.find( :type<operation>, :content<sqrt> ) {
+            $node.content = %ops<power>;
+            $node.children[1] = $tree.new( :type<value>, :content(.5) );
+            $hit = True;
+        }
+
+        # root -> power
+        elsif $node = $tree.find( :type<operation>, :content<root> ) {
+            $node.content = %ops<power>;
+            $node.children[1] = $tree.new(
+                :type<operation>, :content(%ops<power>), :children(
+                    $node.children[1],
+                    $tree.new(:type<value>, :content(-1))
+                )
+            );
+            $hit = True;
+        }
+
+        # negate -> multiply
+        elsif $node = $tree.find( :type<operation>, :content<negate> ) {
+            $node.content = %ops<multiply>;
+            $node.children[1] = $tree.new(:type<value>, :content(-1));
+            $hit = True;
+        }
+
+        # divide -> multiply
+        elsif $node = $tree.find( :type<operation>, :content<divide> ) {
+            $node.content = %ops<multiply>;
+            $node.children[1] = $tree.new(
+                :type<operation>, :content(%ops<power>), :children(
+                    $node.children[1],
+                    $tree.new(:type<value>, :content(-1))
+                )
+            );
+            $hit = True;
+        }
+
+        elsif my @nodes = $tree.find_all( :type<operation> ) {
+            # TODO we could use a smarter pattern to not have to re-test every single op in the tree repeatedly
+            # except now we're doing many things in here
+            while @nodes && !$hit {
+                $node = @nodes.shift;
+                my $op = $node.content;
+                my $func = $op.function;
+
+                # identity value stuff
+                my $ident = $func.identity;
+                if defined $ident {
+                    my $do = False;
+                    my $val = $node.children[1];
+                    $do = ($val.type eq 'value' && $val.content ~~ $ident);
+                    my $flip = False;
+                    unless $do {
+                        $val = $node.children[0];
+                        $do = (
+                            $func.commute ~~ Bool &&
+                            $func.commute &&
+                            $val.type eq 'value' &&
+                            $val.content ~~ $ident
+                        );
+                        $flip = True;
+                    }
+                    if $do {
+                        my $new;
+                        if $flip {
+                            $new = $node.children[1];
+                        } else {
+                            $new = $node.children[0];
+                        }
+                        $node.type = $new.type;
+                        $node.content = $new.content;
+                        $node.children = $new.children;
+                        $hit = True;
                     }
                 }
 
@@ -329,7 +459,8 @@ method isolate (Str:D $var) {
         $complete = True unless $work.children;
     }
 
-    self.simplify();
+    #self.simplify();
+    self.normalize();
 }
 
 # TODO this whole thing is done much more concisely by grammar actions...learn about those

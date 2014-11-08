@@ -12,6 +12,8 @@ class Math::Symbolic::Function {
 
     has $.identity;
     has $.associative;
+
+    has $.normal;
     
     method Str () { $.name }
 }

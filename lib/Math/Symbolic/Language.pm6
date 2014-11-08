@@ -21,6 +21,7 @@ my @operations = (
             :identity(0),
             :commute,
             :associative,
+            :normal
         },
         :syntax{
             :type<infix>,
@@ -50,7 +51,8 @@ my @operations = (
             :invert-via<invert>,
             :identity(1),
             :commute,
-            :associative
+            :associative,
+            :normal
         },
         :syntax{
             :type<infix>,
@@ -78,7 +80,8 @@ my @operations = (
             :eval( &infix:<**> ),
             :inverse<root>,
             :invert-via<invert>,
-            :identity(1)
+            :identity(1),
+            :normal
         },
         :syntax{
             :type<infix>,
