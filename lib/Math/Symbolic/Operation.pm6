@@ -12,6 +12,9 @@ class Math::Symbolic::Function {
 
     has $.identity;
     has $.associative;
+
+    has $.up is rw;
+    has $.down is rw;
     
     method Str () { $.name }
 }
