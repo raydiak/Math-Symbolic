@@ -382,6 +382,19 @@ method normalize () {
     self;
 }
 
+method expand () {
+    my $tree = $!tree;
+
+    my $hit = True;
+    while $hit {
+        $hit = False;
+        # do some more stuff in here
+        # btw this tree/while/hit/find thing is looking familiar...wrap?
+    }
+
+    self;
+}
+
 # this routine is pretty dumb too, and could be enhanced with a similar network approach
     # simply peeling back all the ops by applying the inverse to the other side won't always work
     # we also don't currently have any way of solving for a variable which appears more than once
@@ -402,13 +415,29 @@ method normalize () {
     # mix and balance these approaches
 method isolate (Str:D $var) {
     my $tree = $!tree;
-    my $work = $tree.contains(:type<symbol>, :content($var));
-    die 'Error: symbol not found' unless $work;
-    $tree.children .= reverse if $work === $tree.children[1];
+
+    die 'Error: can only isolate variables in relations'
+        unless $tree.type eq 'relation';
+
+    my @paths = find_all $tree: :type<symbol>, :content($var), :path;
+    if @paths > 1 {
+        self.expand;
+        $tree.Str.say;
+        die 'Error: isolating multiple instances of a variable is NYI';
+    } elsif !@paths {
+        die "Error: symbol '$var' not found in relation '$tree'";
+    }
+
+    my @path := @paths[0];
+
+    my $i = @path.shift;
+    $tree.children .= reverse if $i != 0;
+    my $work = $tree.children[0];
+
     my $complete = !$work.children;
     until $complete {
-        my $next = $work.contains(:type<symbol>, :content($var));
-        my $i = 1 - ($next === $work.children[0]);
+        $i = @path.shift;
+        my $next = $work.children[$i];
         if $work.type eq 'operation' {
             my $op = $work.content;
             my $func = $op.function;
@@ -426,6 +455,7 @@ method isolate (Str:D $var) {
                             :type<operation>, :content(%ops{$func.invert-via}),
                             :children($next.children[0])
                         );
+                        @path.unshift: 0, 0;
                         $new = False;
                     } else {
                         $work.children .= reverse;
