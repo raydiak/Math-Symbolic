@@ -252,12 +252,72 @@ method simplify () {
     self;
 }
 
+# need sink_ops and float_ops (transform via down/up)
+# expand is sink
+# does .float need a param like .poly? .float=.poly? .poly=.isolate?
+# .poly = {.sink; .arrange;? .float;}
 method expand () {
     my $tree = $!tree;
 
     my $hit = True;
     while $hit {
         $hit = False;
+
+        for $tree.find_all(:children(
+            {:type<value>,},
+            {:type<value>,}
+        )) -> $node {
+            $node.content = +$node;
+            $node.type = 'value';
+            $node.children = ();
+            $hit = True;
+        }
+
+        for $tree.find_all(:type<operation>) -> $node {
+            my $op = $node.content;
+            next unless $op.arity == 2;
+            next unless my $func = $op.function;
+            next unless my $down = $func.down;
+            my $i;
+            if $node.match: :children( *,
+                {
+                    :type<value>,
+                    :content( {$_ == $_.Int and $_ > 0} )
+                }
+            ) {
+                $i = 0;
+            } elsif $func.commute &&
+                $node.match: :children(
+                    {
+                        :type<value>,
+                        :content( {$_ == $_.Int and $_ > 0} )
+                    }, *
+            ) {
+                $i = 1;
+            }
+
+            if defined $i {
+                my $child = $node.children[$i];
+                my $ident = $func.identity;
+                my $rep = $node.children[1-$i].content - $ident;
+                next unless $rep-- > 0;
+                my $val = $child.content;
+                my $tmpl = $tree.new: :type<operation>, :content($down),
+                    :children($child, $child.clone);
+                my $new = $tmpl.clone;
+
+                while $rep-- {
+                    my $old = $new;
+                    $new = $tmpl.clone;
+                    $new.children[1] = $old;
+                }
+
+                $node.content = $new.content;
+                $node.children = $new.children;
+                $hit = True;
+                last;
+            }
+        }
         # do some more stuff in here
         # btw this tree/while/hit/find thing is looking familiar...wrap?
     }
