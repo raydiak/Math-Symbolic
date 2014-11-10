@@ -22,6 +22,8 @@ method contains (:$type, :$content) {
 }
 
 method match (*%s) {
+    CATCH {die "Error in match: $_\nMatch: {%s.perl}"};
+
     for %s.keys {
         next if $_ eq 'children';
         my $criteria = %s{$_};
@@ -38,7 +40,7 @@ method match (*%s) {
             my %child_params = %$child_criteria;
             next unless %child_params;
             my $child = self.children[$child_i];
-            return False unless $child.match( |%child_params );
+            return False unless $child && $child.match( |%child_params );
         }
     }
 

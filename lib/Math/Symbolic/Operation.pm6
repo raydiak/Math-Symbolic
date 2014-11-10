@@ -1,3 +1,5 @@
+class Math::Symbolic::Operation { ... };
+
 class Math::Symbolic::Function {
     has $.name;
     has $.arity;
@@ -14,8 +16,28 @@ class Math::Symbolic::Function {
     has $.associative;
 
     has $.normal;
-    
+
+    has $.up is rw;
+    has $.down is rw;
+
     method Str () { $.name }
+
+    multi method perl(::CLASS:D:) {
+        my @attrs;
+        for self.^attributes().grep: { .has_accessor } -> $attr {
+            my $name := $attr.Str.substr(2);
+
+            my $value = self."$name"();
+            if $value ~~ Math::Symbolic::Operation && $value.defined && (my $op_name := $value.name) {
+                $value = "Math::Symbolic::Language.by_name\{{$op_name.perl}}";
+            } else {
+                $value .= perl;
+            }
+
+            @attrs.push: "$name => $value";
+        }
+        self.HOW.name(self) ~ '.new(' ~  @attrs.join(', ') ~ ')';
+    }
 }
 
 class Math::Symbolic::Syntax {

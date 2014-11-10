@@ -16,6 +16,7 @@ my @operations = (
         :name<add>,
         :function{
             :eval( &infix:<+> ),
+            :up<multiply>,
             :inverse<subtract>,
             :invert-via<negate>,
             :identity(0),
@@ -47,6 +48,8 @@ my @operations = (
         :name<multiply>,
         :function{
             :eval( &infix:<*> ),
+            :up<power>,
+            :down<add>,
             :inverse<divide>,
             :invert-via<invert>,
             :identity(1),
@@ -78,6 +81,7 @@ my @operations = (
         :name<power>,
         :function{
             :eval( &infix:<**> ),
+            :down<multiply>,
             :inverse<root>,
             :invert-via<invert>,
             :identity(1),
@@ -189,20 +193,17 @@ for @operations {
     my $func = $_.function;
     next unless $func;
 
-    if my $inv := $func.inverse {
-        my $op = %by_name{$inv};
-        $inv = $op if $op;
+    for <inverse invert-via up down> -> $prop {
+        if my $val := $func."$prop"() {
+            next unless $val ~~ Str;
+            my $op = %by_name{$val};
+            die "Cannot find '$val' operation" unless $op;
+            $val = $op;
+        }
     }
 
-    if my $inv_via := $func.invert-via {
-        my $op = %by_name{$inv_via};
-        die "Cannot find '$inv_via' operation" unless $op;
-        $inv_via = $op;
-
-        my $comm := $func.commute;
-        if !$comm && $inv_via && $inv && $inv.function.commute === True {
-            $comm = 'inverse';
-        }
+    if !(my $comm := $func.commute) && $func.invert-via && (my $inv = $func.inverse) {
+        $comm = 'inverse' if $inv.function.commute === True;
     }
 }
 
