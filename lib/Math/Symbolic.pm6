@@ -955,7 +955,7 @@ proto method isolate (|) {*}
 multi method isolate (Str:D $var) {
     my $tree = $!tree;
 
-    my @paths = find_all $tree: :type<symbol>, :content($var), :path;
+    my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
     if @paths > 1 {
         self.poly($var);
         $tree.Str.say;
