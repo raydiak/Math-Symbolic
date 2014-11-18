@@ -17,11 +17,16 @@ my %ops := Math::Symbolic::Language.by_name;
 my %syn := Math::Symbolic::Language.by_syntax;
 my %syn_syn := Math::Symbolic::Language.syntax_by_syntax;
 
-has $.tree handles <Str Numeric count>;
+has $.tree handles <Numeric count>;
+
+method Str () {
+    self.simplify;
+    $.tree.Str;
+}
 
 method new (Str:D $in, *%args is copy) {
+
     # TODO this is by far the slowest part, over 2.4 seconds for 'x=(-b+(b^2-4*a*c)^.5)/(2*a)' on an A4-3305M
-        # by comparison, it only takes .55 seconds to simplify, isolate 'c', and simplify again, once parsing is complete
     my $parse = Math::Symbolic::Grammar.parse($in);
 
     die 'Parse failure: invalid expression' unless $parse;
@@ -31,7 +36,7 @@ method new (Str:D $in, *%args is copy) {
     my $obj = self.bless: |%args;
     #$obj.dump_tree;
     #$obj.simplify();
-    $obj.normalize();
+    #$obj.normalize();
     #$obj.dump_tree;
 
     $obj;
@@ -40,18 +45,25 @@ method new (Str:D $in, *%args is copy) {
 method clone () {
     self.bless: :tree(self.tree.clone);
 }
-method evaluate (*%vals) {
-    for %vals.kv -> $var, $val {
-        my $subtree = self.new(~$val).tree;
-        for $!tree.find_all( :type<symbol>, :content($var) ) {
-            $_.type = $subtree.type;
-            $_.content = $subtree.content;
-            $_.children = $subtree.children;
+
+method evaluate (*%vals is copy) {
+    for %vals.values {
+        $_ = self.new(~$_).tree;
+    }
+    my $hit = True;
+    while $hit {
+        $hit = False;
+        for %vals.kv -> $var, $val {
+            for $!tree.find_all( :type<symbol>, :content($var) ) {
+                set $_: $val;
+                $hit = True;
+            }
         }
     }
 
     #self.simplify;
-    self.normalize;
+    #self.normalize;
+    self;
 }
 
 # this whole routine is very dumb and could be made smarter with a limited search through a (lazy?) network of possible manipulations
@@ -175,6 +187,20 @@ method simplify () {
             $hit = True;
         }
 
+        # a*(b/c) -> a*b/c
+        elsif $node = $tree.find( :type<operation>, :content<multiply>, :children(
+            *,
+            {:type<operation>, :content<divide>}
+        ) ) {
+            $node.content = %ops<divide>;
+            $node.children[0] = Math::Symbolic::Tree.new(:type<operation>, :content(%ops<multiply>), :children(
+                $node.children[0],
+                $node.children[1].children[0]
+            ));
+            $node.children[1] = $node.children[1].children[1];
+            $hit = True;
+        }
+
         elsif my @nodes = $tree.find_all( :type<operation> ) {
             # TODO we could use a smarter pattern to not have to re-test every single op in the tree repeatedly
             # except now we're doing many things in here
@@ -277,6 +303,434 @@ method simplify () {
     self;
 }
 
+method commute ($var?) {
+    # flip operands w/each other to sort
+    # constants -> vars -> ops
+    # vars are sorted alphabetically, but with $var last if it is passed
+}
+
+method associate () {
+    # flip operands w/their parents to group
+}
+
+method poly ($var) {
+    self.normalize;
+    self.expand;
+
+    my $tree = $!tree;
+
+    my @paths = $tree.find_all: :type<symbol>, :content($var), :path
+        unless @paths;
+    die "Error: variable '$var' not found in '$tree'" unless @paths;
+
+    my $work = $tree;
+
+    if $tree.type eq 'relation' {
+        my %side_var := @paths»[0].Bag;
+        my $side = +(%side_var{0} < %side_var{1});
+        $tree.children .= reverse if $side;
+
+        $work = $tree.children[0];
+        my $opp := $tree.children[1];
+
+        if %side_var.keys == 1 {
+            @paths = $tree.find_all: :type<symbol>, :content($var), :path;
+            my @path;
+            my $i = 0;
+            my $max_elems = @paths».elems.min;
+            while $max_elems > $i && @paths»[$i].uniq == 1 {
+                @path[$i] = @paths[0][$i];
+                $i++;
+            }
+
+            if @path > 1 {
+                self.isolate: :@path;
+                $work = $tree.children[0];
+            }
+        }
+        
+        my %zero = :type<value>, :content(0);
+        unless $opp.match: |%zero {
+            @($work.children) = $work.clone, $tree.new(
+                :type<operation>, :content(%ops<multiply>),
+                :children[ $tree.new(:type<value>,:content(-1)), $opp ]
+            );
+            $work.type = 'operation';
+            $work.content = %ops<add>;
+
+            $opp = $tree.new: |%zero;
+
+            self.expand;
+
+            # TODO reduce & report: if this isn't here, rakudo gives
+            # "Internal error: zeroed target thread ID in work pass"
+            print '';
+        }
+    }
+
+    # assumptions at this point:
+    # there is more than one instance of var
+    # var is contained within only + * and ^ operations from the root
+        # hope var isn't on the right of any ^
+    die "Error: cannot arrange '$work' as a polynomial" unless $work.type eq 'operation';
+
+    self.condense($var, $work);
+
+    my %coeffs;
+    my @parts = $work.match(:type<operation>, :content<add>) ??
+        $work.chain !!
+        $work;
+    my %var = :type<symbol>, :content($var);
+    for @parts {
+        when $_.match: |%var {
+            %coeffs{1} = $tree.new-val: 1;
+        }
+        when $_.match: :type<operation>, :content<multiply>,
+            :children(%var, *) {
+            %coeffs{1} = $_.children[1];
+        }
+        when $_.match: :type<operation>, :content<power>,
+            :children(%var, {:type<value>,}) {
+            %coeffs{$_.children[1]} = $tree.new-val: 1;
+        }
+        #`[[[ TODO BUG
+        when $_.match( :type<operation>, :content<multiply> ) &&
+            $_.children[0].match(
+                :type<operation>,
+                :content<power>,
+                :children(
+                    %var,
+                    # {:type<symbol>, :content($var)},
+                    # { :type<value>, }
+                    %( :type<value> )
+                )
+            )
+        ]]]
+        when $_.match( :type<operation>, :content<multiply> ) &&
+            $_.children[0].match( :type<operation>, :content<power> ) &&
+            $_.children[0].children[0].match(|%var) &&
+            $_.children[0].children[1].type eq 'value'
+        {
+            %coeffs{$_.children[0].children[1]} = $_.children[1];
+        }
+        default {
+            my $z := %coeffs{0};
+            if $z {
+                $z = $tree.new-op(%ops<add>, $z, $_);
+            } else {
+                $z = $_;
+            }
+        }
+    }
+
+    for %coeffs.keys.sort.reverse {
+        say "$_\t%coeffs{$_}";
+    }
+    exit;
+
+    #@paths = $tree.find_all: :type<symbol>, :content($var), :path;
+
+    #`[[[
+    my $levels = {
+        when 'add' { 3 }
+        when 'multiply' { 2 }
+        # when 'power' { 1 } in this case there could only be 1 var, or var^var
+        die "Cannot arrange '$work' as a polynomial";
+    }($work.content.Str);
+    #die "levels: $levels";
+
+    my $one = $tree.new: :type<value>, :content(1);
+    my %by_power;
+    my @parts = ($levels == 3 ?? $work.chain !! $work);
+    for @parts {
+        my $type = $_.type;
+        if $type eq 'symbol' {
+            if $_.content eq $var {
+                %by_power.push: 1 => $one.clone;
+            } else {
+                %by_power.push: 0 => $_;
+            }
+        } elsif $type eq 'value' {
+            %by_power.push: 0 => $_;
+        } elsif $type eq 'operation' {
+            my $content = $_.content;
+            if $content eq 'multiply' {
+                my $power = 0;
+                my @subparts;
+                for $_.chain -> $sub {
+                    my $subtype = $sub.type;
+                    my $subcontent = $sub.content;
+                    if $subtype eq 'symbol' && $subcontent eq $var {
+                        $power++;
+                    } elsif $subtype eq 'operation' && $subcontent eq 'power' && $sub.match:
+                        :children({:type<symbol>, :content($var)}, {:type<value>,}) {
+                        $power += $sub.children[1].content;
+                    } else {
+                        @subparts.push: $sub;
+                    }
+                }
+                my $subresult = @subparts ?? @subparts.shift !! $one.clone;
+                $subresult = $tree.new: :type<operation>, :content(%ops<multiply>),
+                    :children($subresult, @subparts.shift) while @subparts;
+                %by_power.push: $power => $subresult;
+            } elsif $content eq 'power' && $_.match:
+                :children({:type<symbol>, :content($var)}, {:type<value>,}) {
+                %by_power.push: $_.children[1].content => $one.clone;
+            } else {
+                %by_power.push: 0 => $_;
+            }
+        }
+    }
+
+    for %by_power.keys -> $k {
+        my $v := %by_power{$k};
+
+        next unless $v ~~ Positional;
+
+        if $v.elems == 1 {
+            $v = $v[0];
+            next;
+        }
+
+        my $new = $v.shift;
+        $new = $tree.new: :type<operation>, :content(%ops<add>),
+            :children($new, $v.shift) while @$v;
+
+        $v = $new;
+        
+        say "$k: $v";
+    };
+    ]]]
+
+    #@paths = $tree.find_all: :type<symbol>, :content($var), :path;
+    #$tree.child(|@$_).Str.say for @paths;
+
+    self;
+}
+
+my class MultiHash is rw {
+    has %.hash{Any} handles <keys values kv pairs>;
+
+    method elem (*@pairs, *%keyhash is copy) is rw {
+        %keyhash{.key} = .value for @pairs;
+
+        my $found_key;
+        my %key;
+
+        for %!hash.keys {
+            if %$_ eqv %keyhash {
+                %key := $_;
+                $found_key = True;
+                last;
+            }
+        }
+
+        %key := %keyhash unless $found_key;
+
+        %!hash{ $%key };
+    }
+
+    method matching (*%keyhash) {
+        my @hits;
+
+        for %!hash.kv -> $k, $v {
+            my $hit = True;
+
+            for %keyhash.kv -> $kt, $vt { # t is for test
+                next if $k{$kt}:exists && $k{$kt} eqv $vt;
+
+                $hit = False;
+                last;
+            }
+
+            push @hits, $v if $hit;
+        }
+
+        return |@hits;
+    }
+}
+
+method condense ($var?, $tree = $!tree) {
+    my $type = $tree.type;
+
+    if $type eq 'relation' {
+        self.condense: $var, $_ for $tree.children;
+    }
+
+    return self if $type ne 'operation';
+
+    my $op = $tree.content;
+    my $func = $op.function;
+    my $up = $func.up;
+    my @c = $tree.children;
+
+    unless $up {
+        self.condense: $var, $_ for @c;
+        return self;
+    }
+
+    my @parts;
+    my $upup = $up.function.up;
+    my $vars = MultiHash.new;
+    my $n := $vars.elem();
+    for $tree.chain {
+        my $type = $_.type;
+        my $content = $_.content;
+        if $type eq 'symbol' {
+            $vars.elem($content => 1)[0]++;
+        } elsif $type eq 'value' {
+            if defined $n[0] {
+                $n[0] = ($func.eval)($n[0], $content);
+            } else {
+                $n[0] = $content;
+            }
+        } elsif $type eq 'operation' {
+            if $content eq $up {
+                my %subvar_count;
+                my @subparts;
+                my $subfunc = $up.function;
+
+                if $subfunc.commute {
+                    for $_.chain -> $sub {
+                        my $subtype = $sub.type;
+                        my $subcontent = $sub.content;
+                        if $subtype eq 'symbol' {
+                            %subvar_count{$subcontent}++;
+                        } elsif $subtype eq 'value' {
+                            if %subvar_count{''}:exists {
+                                %subvar_count{''} = ($subfunc.eval)(
+                                    %subvar_count{''}, $subcontent );
+                            } else {
+                                %subvar_count{''} = $subcontent;
+                            }
+                        } elsif $upup && $subtype eq 'operation' && $subcontent eq $upup &&
+                            $sub.match: :children({:type<symbol>,}, {:type<value>,}) {
+                            %subvar_count{$sub.children[0].content} += $sub.children[1].content;
+                        } else {
+                            @subparts.push: $sub;
+                        }
+                    }
+                } elsif $_.match: :children({:type<symbol>,}, {:type<value>,}) {
+                    #%subvar_count{$_.children[0].content} += $_.children[1].content;
+                    %subvar_count{$_.children[0].content}++;
+                    %subvar_count{''} += $_.children[1].content;
+                } else {
+                    @subparts.push: $_;
+                }
+
+                my $count = %subvar_count{''}:delete // 1;
+
+                %subvar_count .= grep: *.value;
+                my $elem := $vars.elem(|%subvar_count);
+                if %subvar_count {
+                    $elem[0] += $count;
+                } else {
+                    unshift @subparts: $tree.new: :type<value>, :content($count)
+                        unless $count == $subfunc.identity;
+                }
+
+                $elem.push: $tree.new-chain: $up, |@subparts if @subparts;
+
+                # TODO reduce & report: if this isn't here, rakudo gives
+                # "Internal error: zeroed target thread ID in work pass"
+                print '';
+            } elsif $upup && $content eq $upup && $_.match:
+                :children({:type<symbol>,}, {:type<value>,}) {
+                #%var_count{$_.children[0].content}{$_.children[1].content} += 1;
+                $vars.elem($_.children[0].content => $_.children[1].content)[0] += 1;
+            } else {
+                @parts.push: $_;
+            }
+        } else {
+            die "Error: cannot manipulate nodes of type '$type'";
+        }
+    }
+
+    if @parts {
+        $n.push: 1 unless @$n;
+        $n.push: @parts;
+    }
+
+    $vars.hash .= grep: { my $v := .value; $v[0] || $v.elems > 1 };
+
+    if $var {
+        my $newvars = $vars.new;
+        # transform for requested $var here
+        for $vars.kv -> $keyhash, $vals {
+            my $power = $keyhash{$var} :delete // 0;
+            my @subparts;
+            if $upup {
+                push @subparts: $keyhash.map: {
+                    .value == $upup.function.identity ?? $tree.new-sym(.key) !!
+                    $tree.new-op($upup, $tree.new-sym(.key), $tree.new-val(.value))
+                };
+            } else {
+                push @subparts: $keyhash.map: -> $p {
+                    my @sub;
+                    push @sub: $tree.new-sym($p.key) for ^($p.value);
+                    @sub;
+                };
+            }
+            my $elem := $newvars.elem($var => $power);
+            #$elem[0] = @$elem ??
+            #    ($up.function.eval)($elem[0], @$vals.shift) !!
+            #    @$vals.shift;
+            my $co = @$vals.shift;
+            unshift @subparts: $tree.new-val: $co if $co != $up.function.identity;
+            $elem.push: $tree.new-chain: $up, @subparts if @subparts;
+            $elem.push: @$vals;
+        }
+
+        $vars := $newvars;
+    }
+
+    # then convert back into a ::Tree and $tree.set
+    my @new_parts;
+    for $vars.kv -> $keyhash, $vals {
+        my @subparts;
+
+        if @$vals && $vals[0] ~~ Numeric {
+            my $v = $vals.shift;
+            @subparts.push: $tree.new-val: $v
+                if $v != $up.function.identity;
+        }
+
+        for $keyhash.keys.sort -> $kk {
+            my $kv := $keyhash{$kk};
+            if (defined $var and $kk eq $var) || $kv != 1 {
+                my $new;
+                if $upup {
+                    $new = $tree.new-op: $upup, $tree.new-sym($kk), $tree.new-val($kv);
+                } elsif $kv == $kv.Int && $kv > 0 {
+                    $new = $tree.new-sym($kk) for 1..$kv;
+                } else {
+                    # really, checking for this is sorta inane...how would we get here?
+                    die "Error: this transformation would require the Knuth up arrow (NYI)";
+                }
+                if $kk eq $var {
+                    @subparts.unshift: $new;
+                } else {
+                    @subparts.push: $new;
+                }
+            } else {
+                @subparts.push: $tree.new-sym($kk);
+            }
+        }
+
+        @subparts.push: $tree.new-chain: $op, @$vals if @$vals;
+
+        @new_parts.push: $tree.new-chain: $up, |@subparts;
+    }
+
+    $tree.set: $tree.new-chain: $op, |@new_parts;
+
+    self;
+}
+
+# roughly opposite of simplify
+# expands shorthand ops (eg a² -> a^2)
+# inverts non-commutative ops to commutable forms (eg a-b -> a+-1*b)
+# folds constants
 method normalize () {
     my $tree = $!tree;
     my $hit = True;
@@ -298,15 +752,10 @@ method normalize () {
             $hit = True;
         }
 
-        # root -> power
-        elsif $node = $tree.find( :type<operation>, :content<root> ) {
+        # invert -> power
+        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
             $node.content = %ops<power>;
-            $node.children[1] = $tree.new(
-                :type<operation>, :content(%ops<power>), :children(
-                    $node.children[1],
-                    $tree.new(:type<value>, :content(-1))
-                )
-            );
+            $node.children[1] = $tree.new(:type<value>, :content(-1));
             $hit = True;
         }
 
@@ -314,18 +763,6 @@ method normalize () {
         elsif $node = $tree.find( :type<operation>, :content<negate> ) {
             $node.content = %ops<multiply>;
             $node.children[1] = $tree.new(:type<value>, :content(-1));
-            $hit = True;
-        }
-
-        # divide -> multiply
-        elsif $node = $tree.find( :type<operation>, :content<divide> ) {
-            $node.content = %ops<multiply>;
-            $node.children[1] = $tree.new(
-                :type<operation>, :content(%ops<power>), :children(
-                    $node.children[1],
-                    $tree.new(:type<value>, :content(-1))
-                )
-            );
             $hit = True;
         }
 
@@ -337,9 +774,21 @@ method normalize () {
                 my $op = $node.content;
                 my $func = $op.function;
 
+                # inversion stuff
+                my $inv = $func.inverse;
+                my $inv-via = $func.invert-via;
+                if !$func.normal && $func.arity == 2 && $inv && $inv.function.normal && $inv-via {
+                    $node.children[1] = $tree.new(
+                        :type<operation>, :content($inv-via),
+                        :children($node.children[1])
+                    );
+                    $node.content = $inv;
+
+                    $hit = True;
+                }
+
                 # identity value stuff
-                my $ident = $func.identity;
-                if defined $ident {
+                if !$hit && defined (my $ident = $func.identity) {
                     my $do = False;
                     my $val = $node.children[1];
                     $do = ($val.type eq 'value' && $val.content ~~ $ident);
@@ -447,7 +896,28 @@ method expand () {
                 $hit = True;
                 last;
             }
+
+            # distribution
+            my $content = $down.name | $down.function.inverse.name;
+            if $node.children[0].match: :type<operation>, :$content
+                { $i = 0 }
+            elsif $func.commute === True &&
+                $node.children[1].match: :type<operation>, :$content
+                { $i = 1 }
+            if defined $i {
+                my $child = $node.children[$i];
+                $child.children .= map: {
+                    my $new = $node.clone;
+                    $new.children[$i] = $_;
+                    $new;
+                };
+                $node.content = $child.content;
+                $node.children = $child.children;
+                $hit = True;
+                last;
+            }
         }
+
         # do some more stuff in here
         # btw this tree/while/hit/find thing is looking familiar...wrap?
     }
@@ -473,84 +943,89 @@ method expand () {
     # prioritize solving more difficult/restrictive parts first...iow plan the tricky parts of the path first, then fill in the boring parts in between
         # don't waste time bikeshedding until you can know the requirements of the bikeshed
     # mix and balance these approaches
-method isolate (Str:D $var) {
-    my $tree = $!tree;
+proto method isolate (|) {*}
 
-    die 'Error: can only isolate variables in relations'
-        unless $tree.type eq 'relation';
+multi method isolate (Str:D $var) {
+    my $tree = $!tree;
 
     my @paths = find_all $tree: :type<symbol>, :content($var), :path;
     if @paths > 1 {
-        self.expand;
+        self.poly($var);
         $tree.Str.say;
         die 'Error: isolating multiple instances of a variable is NYI';
     } elsif !@paths {
         die "Error: symbol '$var' not found in relation '$tree'";
+    } else {
+        self.isolate: :path(@paths[0]);
     }
 
-    my @path := @paths[0];
+    self;
+}
+
+multi method isolate (:@path) {
+    my $tree = $!tree;
+
+    die 'Error: can only isolate variables in relations'
+        unless $tree.type eq 'relation';
 
     my $i = @path.shift;
     $tree.children .= reverse if $i != 0;
     my $work = $tree.children[0];
 
     my $complete = !$work.children;
-    until $complete {
-        $i = @path.shift;
+    while defined($i = @path.shift) {
         my $next = $work.children[$i];
-        if $work.type eq 'operation' {
-            my $op = $work.content;
-            my $func = $op.function;
-            my $invop = $func.inverse;
-            die "Error: inversion of '$op' is NYI" unless $invop;
-            my $new;
+        die 'Error: encountered non-operation parent node'
+            unless $work.type eq 'operation';
 
-            if $i != 0 {
-                my $commute = $func.commute;
-                if $commute {
-                    if $commute eq 'inverse' {
-                        $next = $work;
-                        $next.children .= reverse;
-                        $next.children[0] = $tree.new(
-                            :type<operation>, :content(%ops{$func.invert-via}),
-                            :children($next.children[0])
-                        );
-                        @path.unshift: 0, 0;
-                        $new = False;
-                    } else {
-                        $work.children .= reverse;
-                    }
+        my $op = $work.content;
+        my $func = $op.function;
+        my $invop = $func.inverse;
+        die "Error: inversion of '$op' is NYI" unless $invop;
+        my $new;
+
+        if $i != 0 {
+            my $commute = $func.commute;
+            if $commute {
+                if $commute eq 'inverse' {
+                    $next = $work;
+                    $next.children .= reverse;
+                    $next.children[0] = $tree.new(
+                        :type<operation>, :content($func.invert-via),
+                        :children($next.children[0])
+                    );
+                    @path.unshift: 0, 0;
+                    $new = False;
                 } else {
-                    die "Error: reversing '$op' is NYI";
+                    $work.children .= reverse;
                 }
+            } else {
+                die "Error: reversing '$op' is NYI";
             }
-
-            if !defined $new {
-                die "Error: inversion of '$op' is NYI" if $op.arity > 2;
-                my @children = $tree.children[1];
-
-                @children.push: $work.children[1] if $op.arity > 1;
-
-                $new = Math::Symbolic::Tree.new(
-                    type => 'operation',
-                    content => $invop,
-                    :@children
-                );
-            }
-
-            $tree.children[0] = $next;
-            $tree.children[1] = $new if $new;
-
-            $work = $next;
-        } else {
-            die 'Error: encountered non-operation parent node';
         }
 
-        $complete = True unless $work.children;
+        if !defined $new {
+            die "Error: inversion of '$op' is NYI" if $op.arity > 2;
+            my @children = $tree.children[1];
+
+            @children.push: $work.children[1] if $op.arity > 1;
+
+            $new = Math::Symbolic::Tree.new(
+                type => 'operation',
+                content => $invop,
+                :@children
+            );
+        }
+
+        $tree.children[0] = $next;
+        $tree.children[1] = $new if $new;
+
+        $work = $next;
     }
 
     #self.simplify();
-    self.normalize();
+    #self.normalize();
+    self;
 }
 
 # TODO this whole thing is done much more concisely by grammar actions...learn about those
@@ -673,4 +1148,53 @@ method perl () {
 }
 
 method gist () { self.Str }
+
+
+
+#`[[[
+
+              Inverse
+                 ↔
+     Negative         Positive
++----------------+----------------+
+|                |                |
+|          √     |        ^       |
+|         √      |       ^ ^      |
+|    √   √       |      ^   ^     | 3
+|     √ √        |                |
+|      √         |                |
+|                |                |
++----------------+----------------+     ↑ Up
+|                |                |
+|       ÷        |     ×     ×    |
+|                |      ×× ××     |
+|    ÷÷÷÷÷÷÷     |        ×       | 2
+|                |      ×× ××     |
+|       ÷        |     ×     ×    |
+|                |                |
++----------------+----------------+     ↓ Down
+|                |                |
+|                |        +       |
+|                |        +       |
+|    -------     |    +++++++++   | 1
+|                |        +       |
+|                |        +       |
+|                |                |
++----------------+----------------+
+
+An op distributes over either op 1 level down from it.
+
+Positive ops associate and commute, except level 3.
+
+Level 1 has identity 0, while the rest have identity 1.
+
+Each subsequent positive op is a repetition of the op directly below it. However, no obvious similar relation seems to exist between the negative ops.
+
+A positive op with an integer second argument is equal to the op 1 level down iterated that many times on its own identity value, given the original first arg as the second.
+
+An op with a negative second arg is equal to the negative op 1 level down with it's first op set to its own identity value, and the second arg set to the original op with a negated (positive) second arg.
+
+]]]
+
+
 
