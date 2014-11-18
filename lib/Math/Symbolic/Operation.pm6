@@ -31,7 +31,7 @@ class Math::Symbolic::Function {
             if $value ~~ Math::Symbolic::Operation && $value.defined && (my $op_name := $value.name) {
                 $value = "Math::Symbolic::Language.by_name\{{$op_name.perl}}";
             } else {
-                $value .= perl;
+                $value = $value.perl;
             }
 
             @attrs.push: "$name => $value";
