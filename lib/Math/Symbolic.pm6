@@ -158,18 +158,25 @@ method simplify () {
             $hit = True;
         }
 
-        # a/b/c -> a*c/b
+        # invert -> division
+        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
+            $node.content = %ops<divide>;
+            $node.children[1] = $node.children[0];
+            $node.children[0] = $tree.new(:type<value>, :content(1));
+            $hit = True;
+        }
+
+        # a/b/c -> a/(b*c)
         elsif $node = $tree.find( :type<operation>, :content<divide>, :children(
             {:type<operation>, :content<divide>},
             *
         ) ) {
             $node.content = %ops<divide>;
-            my $d = $node.children[0].children[1];
-            $node.children[0] = Math::Symbolic::Tree.new(:type<operation>, :content(%ops<multiply>), :children(
-                $node.children[0].children[0],
+            $node.children[1] = $tree.new(:type<operation>, :content(%ops<multiply>), :children(
+                $node.children[0].children[1],
                 $node.children[1]
             ));
-            $node.children[1] = $d;
+            $node.children[0] = $node.children[0].children[0];
             $hit = True;
         }
 
