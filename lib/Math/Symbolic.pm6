@@ -348,7 +348,7 @@ method isolate (Str:D $var) {
     die 'Error: can only isolate variables in relations'
         unless $tree.type eq 'relation';
 
-    my @paths = find_all $tree: :type<symbol>, :content($var), :path;
+    my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
     if @paths > 1 {
         self.expand;
         $tree.Str.say;
