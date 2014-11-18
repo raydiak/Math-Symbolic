@@ -71,8 +71,67 @@ method find_all (Bool :$path = False, *%s) {
     return @results;
 }
 
+method chain (Bool :$ops = False) {
+    my $type = self.type;
+
+    die "Error: can only call .chain() on operations; this is a{
+        ($type ~~ /^<[aeiou]>/ ?? 'n ' !! ' ') ~ $type
+    }" unless $type eq 'operation';
+
+    my @chain;
+    @chain.push: self if $ops;
+    for @.children {
+        if $_.type eq $.type && $_.content eq $.content {
+            @chain.push: $_.chain(:$ops);
+        } else {
+            @chain.push: $_ unless $ops;
+        }
+    }
+
+    @chain;
+}
+
 method count () {
     [+] @.children».count, 1
+}
+
+proto method child(|) {*}
+
+multi method child($i) {
+    @.children[$i];
+}
+
+multi method child ($i, *@i) {
+    @.children[$i].child(|@i);
+}
+
+proto method set (|) {*}
+
+multi method set (Math::Symbolic::Tree $node, Bool :$type, Bool :$content, Bool :$children) {
+    $.type = $node.type unless $type === False;
+    $.content = $node.content unless $content === False;
+    @.children = $node.children unless $children === False;
+
+    self;
+}
+
+multi method set (*%props) {
+    self."$_"() = %props{$_} for %props.keys;
+
+    self;
+}
+
+method get () {
+    %( :$.type, :$.content, :@.children );
+}
+
+method swap (Math::Symbolic::Tree $node) {
+    my %tmp = self.clone.get;
+
+    self.set: $node;
+    $node.set: |%tmp;
+
+    self;
 }
 
 method Str () {
@@ -115,12 +174,49 @@ method Str () {
 }
 
 method Numeric () {
-    +self.Str;
-    CATCH { die "Cannot convert '{self}' to a number: a single constant is required; eliminate any remaining variables with .evaluate() first." }
+    self.type eq 'operation' ??
+        (self.content.function.eval)(|@(self.children».Numeric)) !!
+        +self.Str;
 }
 
 method clone () {
     self.new( :$.type, :$.content, :children(@.children».clone) );
+}
+
+method new-chain ($op, *@children is copy, *%args is copy) {
+    die "Error: cannot create a chain with no children" unless @children;
+
+    return @children[0] unless @children > 1;
+
+    %args<type> = 'operation';
+    %args<content> = $op;
+
+    my $chain = self.new: |%args, :children(@children.shift, @children.shift);
+    $chain = self.new: |%args, :children($chain, @children.shift) while @children;
+
+    $chain;
+}
+
+method new-val ($val, *%args is copy) {
+    %args<type> = 'value';
+    %args<content> = $val;
+
+    self.new: |%args;
+}
+
+method new-sym ($sym, *%args is copy) {
+    %args<type> = 'symbol';
+    %args<content> = $sym;
+
+    self.new: |%args;
+}
+
+method new-op ($op, *@children, *%args is copy) {
+    %args<type> = 'operation';
+    %args<content> = $op;
+    %args<children>.push: @children if @children;
+
+    self.new: |%args;
 }
 
 
