@@ -129,7 +129,12 @@ my @operations = (
     Op(
         :name<sqr>,
         :function{
+
+            # TODO code in here receives null for the argument(s?) when precompiled
+            # all evals in this file are broken when installed normally via panda :P
+            # except those which point to external routines like &infix:<+>
             :eval( * ** 2 ),
+
             :inverse<sqrt>
         },
         :syntax{
