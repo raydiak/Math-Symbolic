@@ -287,14 +287,6 @@ method simplify () {
                         }
                     }
                 }
-
-                # constant folding
-                if !$hit && (my $eval = &($func.eval)) && $node.children.all.type eq 'value' {
-                    $node.type = 'value';
-                    $node.content = $eval( |@($node.children».content) );
-                    $node.children = ();
-                    $hit = True;
-                }
             }
         }
 
@@ -307,17 +299,25 @@ method simplify () {
         }
     }
 
+    self.fold;
+}
+
+method fold ($tree = $!tree) {
+    my $hit = True;
+    while $hit && my @nodes = $tree.find_all: :type<operation> {
+        for @nodes -> $node {
+            my $func = $node.content.function;
+            if $func && (my &eval := $func.eval) &&
+                $node.children.all.type eq 'value' {
+                $node.type = 'value';
+                $node.content = eval( |@($node.children».content) );
+                $node.children = ();
+                $hit = True;
+            }
+        }
+    }
+
     self;
-}
-
-method commute ($var?) {
-    # flip operands w/each other to sort
-    # constants -> vars -> ops
-    # vars are sorted alphabetically, but with $var last if it is passed
-}
-
-method associate () {
-    # flip operands w/their parents to group
 }
 
 method poly ($var) {
@@ -823,19 +823,11 @@ method normalize () {
                         $hit = True;
                     }
                 }
-
-                # constant folding
-                if !$hit && (my $eval = &($func.eval)) && $node.children.all.type eq 'value' {
-                    $node.type = 'value';
-                    $node.content = $eval( |@($node.children».content) );
-                    $node.children = ();
-                    $hit = True;
-                }
             }
         }
     }
 
-    self;
+    self.fold;
 }
 
 # need sink_ops and float_ops (transform via down/up)
