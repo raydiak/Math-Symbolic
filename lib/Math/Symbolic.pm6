@@ -24,10 +24,10 @@ method Str () {
     $.tree.Str;
 }
 
-method new (Str:D $in, *%args is copy) {
+method new ($in, *%args is copy) {
 
     # TODO this is by far the slowest part, over 2.4 seconds for 'x=(-b+(b^2-4*a*c)^.5)/(2*a)' on an A4-3305M
-    my $parse = Math::Symbolic::Grammar.parse($in);
+    my $parse = Math::Symbolic::Grammar.parse(~$in);
 
     die 'Parse failure: invalid expression' unless $parse;
 
