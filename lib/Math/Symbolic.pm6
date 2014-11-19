@@ -305,6 +305,7 @@ method simplify () {
 method fold ($tree = $!tree) {
     my $hit = True;
     while $hit && my @nodes = $tree.find_all: :type<operation> {
+        $hit = False;
         for @nodes -> $node {
             my $func = $node.content.function;
             if $func && (my &eval := $func.eval) &&
