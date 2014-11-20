@@ -182,6 +182,17 @@ my @operations = (
         }
     ),
     Op(
+        :name<addsubtract>,
+        :function{
+            :identity(0),
+        },
+        :syntax{
+            :type<infix>,
+            :precedence(3),
+            :parts< ± >
+        }
+    ),
+    Op(
         :syntax{
             :type<circumfix>,
             :parts< ( ) >
