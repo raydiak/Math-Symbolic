@@ -404,7 +404,11 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
         self.condense: $var, $_ for $tree.children;
     }
 
-    return self if $type ne 'operation';
+    if $type ne 'operation' {
+        die 'Error: coefficient analysis is only available for operation nodes'
+            if $coef;
+        return self;
+    }
 
     my $op = $tree.content;
     my $func = $op.function;
@@ -612,20 +616,6 @@ method normalize () {
             $hit = True;
         }
 
-        # invert -> power
-        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
-            $node.content = %ops<power>;
-            $node.children[1] = $tree.new(:type<value>, :content(-1));
-            $hit = True;
-        }
-
-        # negate -> multiply
-        elsif $node = $tree.find( :type<operation>, :content<negate> ) {
-            $node.content = %ops<multiply>;
-            $node.children[1] = $tree.new(:type<value>, :content(-1));
-            $hit = True;
-        }
-
         elsif my @nodes = $tree.find_all( :type<operation> ) {
             # TODO we could use a smarter pattern to not have to re-test every single op in the tree repeatedly
             # except now we're doing many things in here
@@ -677,6 +667,22 @@ method normalize () {
                     }
                 }
             }
+        }
+
+        # these two last to allow the above to match sometimes
+
+        # invert -> power
+        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
+            $node.content = %ops<power>;
+            $node.children[1] = $tree.new(:type<value>, :content(-1));
+            $hit = True;
+        }
+
+        # negate -> multiply
+        elsif $node = $tree.find( :type<operation>, :content<negate> ) {
+            $node.content = %ops<multiply>;
+            $node.children[1] = $tree.new(:type<value>, :content(-1));
+            $hit = True;
         }
     }
 
