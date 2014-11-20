@@ -72,33 +72,15 @@ is supported for relations).
 
 Returns a clone of the object with an independent copy of the tree structure.
 This is important because all manipulations (below) are done in place, and
-cloning avoids the parsing and autosimplifying overhead of .new().
+cloning avoids the parsing overhead of .new().
 
 #### .isolate(Str:D $var)
 
 Arranges a relation with $var on the left and everything else on the right.  Or
-attempts to. It currently only supports simple operation inversion, it can't
-yet combine multiple instances of a variable in an equation, factor
-polynomials, etc. If called on an equation with more than one instance of the
-variable, it will isolate the first instance it encounters in the tree
-structure. If called on a non-relation expression, a butterfly dies.
-
-This is one area which the author looks forward to experimenting in. Non-
-obvious solutions could be discovered automatically by traversing a network of
-possible "arrangement" nodes, interconnected by "manipulation" edges.  The
-network could be entirely generated automatically from the operation list, a
-manipulation list (which doesn't exist yet), and a few more properties on each
-operation to control which operations interact how (e.g.  commutivity and
-distributivity, some of which already exists), so as to filter out logically
-invalid combinations. This approach would allow simple-to-visualize geometric
-solutions to otherwise complex problems.  Isolating, simplifying, or, more
-generally, reaching any success criteria, boils down to the comparatively
-simple problem of searching an undirected graph. The search could possibly be
-guided by a more sophisticated pathfinding algorithm making use of metrics like
-tree complexity/node count (for simplifying) or a measure of
-similarity/difference between two arrangements (for example, to compare each
-node as you traverse it with the desisred form of the result, to prioritize
-searching more similar branches over more different ones).
+attempts to. It supports simple operation inversion when only one instance of a
+variable exists, as well as attempting to combine instances via distributive
+property and/or factoring of polynomial expressions, if necessary. Calling
+.isolate on a non-relation expression is not supported.
 
 #### .evaluate(\*%values)
 
@@ -120,9 +102,9 @@ eventually other special cases like 0, inverse identity, etc). Also already
 does a very small number of rearrangements of combinations of operations, like
 transforming a/b/c into a\*c/b.
 
-.simplify is currently always called at the end of .new, .isolate, and
-.evaluate, making calling it directly pointless in most cases. An option to
-disable this for performance will be added.
+.simplify is currently always called at the end of .isolate and .evaluate, so
+calling it directly is only necessary if other manipulations aren't done on the
+expression. An option to disable this for performance will be added.
 
 This method is another candidate for the network-searching discussed above
 under .isolate(), or at least more extensive use of the properties of the
