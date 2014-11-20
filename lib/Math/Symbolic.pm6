@@ -554,7 +554,7 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
                     # really, checking for this is sorta inane...how would we get here?
                     die "Error: this transformation would require the Knuth up arrow (NYI)";
                 }
-                if $kk eq $var {
+                if defined($var) && $kk eq $var {
                     @subparts.unshift: $new;
                 } else {
                     @subparts.push: $new;
