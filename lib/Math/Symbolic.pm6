@@ -237,7 +237,7 @@ method simplify () {
                                 $child_func.invert-via === $node.content {
                                 $node.content = $child_op;
                                 $node.children = $child.children.reverse;
-                                self.dump_tree($node);
+                                #self.dump_tree($node);
                                 $hit = True;
                             }
                         }
