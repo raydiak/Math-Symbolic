@@ -8,11 +8,7 @@ my %ops := Math::Symbolic::Language.by_name;
 my %syn := Math::Symbolic::Language.by_syntax;
 my %syn_syn := Math::Symbolic::Language.syntax_by_syntax;
 
-has $.tree handles <Numeric count>;
-
-method Str () {
-    $.tree.Str;
-}
+has $.tree handles <Numeric Str count>;
 
 method new ($in, *%args is copy) {
 
