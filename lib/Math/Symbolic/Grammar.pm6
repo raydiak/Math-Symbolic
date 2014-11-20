@@ -52,7 +52,10 @@ my %syn = %(
 
 token TOP { <equation> | <expression> }
 
-token equation { <expression> \= <expression> }
+token equation { <before <-[ = ]>+ \= > <expression> \= <expression> }
+
+# putting term first here would speed things up, think about negate ramifications
+# also other places like infix_term etc
 rule expression { \s* [<operation>|<term>] }
 
 token sign { \+ | \- }
@@ -95,9 +98,9 @@ token prefix_term {
 # for now, we will have to use a hard-coded number of precedence levels
 # until the problem with the following block can be resolved
 rule infix_operation_chain { <infix_chain_a> | <infix_chain_b> | <infix_chain_c> }
-rule infix_chain_a {<infix_term_a>[ $<op>=(@(%in{@prec[2]}».parts»[0])) <infix_term_a>]+}
-rule infix_chain_b {<infix_term_b>[ $<op>=(@(%in{@prec[1]}».parts»[0])) <infix_term_b>]+}
-rule infix_chain_c {<infix_term_c>[ $<op>=(@(%in{@prec[0]}».parts»[0])) <infix_term_c>]+}
+rule infix_chain_a {<before .+? @(%in{@prec[2]}».parts»[0])><infix_term_a>[ $<op>=(@(%in{@prec[2]}».parts»[0])) <infix_term_a>]+}
+rule infix_chain_b {<before .+? @(%in{@prec[1]}».parts»[0])><infix_term_b>[ $<op>=(@(%in{@prec[1]}».parts»[0])) <infix_term_b>]+}
+rule infix_chain_c {<before .+? @(%in{@prec[0]}».parts»[0])><infix_term_c>[ $<op>=(@(%in{@prec[0]}».parts»[0])) <infix_term_c>]+}
 token infix_term_a { <infix_chain_b> | <infix_term_b> }
 token infix_term_b { <infix_chain_c> | <infix_term_c> }
 token infix_term_c { <infix_term> }
@@ -120,7 +123,7 @@ rule infix_operation_chain { <@( reverse @in_chains )> }
 rule prefix_operation { <.ws> <prefix_operator><prefix_term> }
 token prefix_operator { @(@pre».parts»[0]) }
 
-rule postfix_operation { <.ws> <postfix_term><postfix_operator> }
+rule postfix_operation { <.ws> <before .* <postfix_operator> > <postfix_term><postfix_operator> }
 token postfix_operator { @(@post».parts»[0]) }
 
 rule circumfix_operation { (<circumfix_open>) <expression> (<circumfix_close>) <?{ %circ{$0} eq $1 }> }
