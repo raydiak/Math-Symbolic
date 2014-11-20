@@ -2,8 +2,7 @@
 
 use v6;
 
-# simple command-line interface for testing
-# may eventually flesh out into a useful console script in bin/
+# simple command-line interface
 # a few other front ends eventually could be cool
     # REPL
     # GUI analyzer/solver/teacher
@@ -28,7 +27,7 @@ sub MAIN ($expression, $isolate_var?, *%vars) {
     $obj.isolate($isolate_var) if defined $isolate_var;
     #$obj.dump_tree;
 
-    say ~$obj;
+    say $obj.simplify.Str;
 }
 
 
