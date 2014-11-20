@@ -11,7 +11,6 @@ my %syn_syn := Math::Symbolic::Language.syntax_by_syntax;
 has $.tree handles <Numeric count>;
 
 method Str () {
-    self.simplify;
     $.tree.Str;
 }
 
@@ -56,9 +55,7 @@ method evaluate (Bool:D :$no-repeat = False, *%vals is copy) {
         }
     }
 
-    #self.simplify;
-    #self.normalize;
-    self;
+    self.simplify;
 }
 
 # this whole routine is very dumb and could be made smarter with a limited search through a (lazy?) network of possible manipulations
@@ -830,7 +827,6 @@ multi method isolate (Str:D $var) {
             %vars<x> = Math::Symbolic::Tree.new-sym: $var;
             $new.evaluate: |%vars, :no-repeat;
             $new.evaluate: :det($det), :no-repeat;
-            $new.simplify;
             $tree.set: $new.tree;
         } else {
             # removes extraneous x^0 before re-calling isolate for a single instance of $var
@@ -849,7 +845,7 @@ multi method isolate (Str:D $var) {
         self.isolate: :path(@paths[0]);
     }
 
-    self;
+    self.simplify;
 }
 
 multi method isolate (:@path) {
@@ -1082,7 +1078,7 @@ Each subsequent positive op is a repetition of the op directly below it. However
 
 A positive op with an integer second argument is equal to the op 1 level down iterated that many times on its own identity value, given the original first arg as the second.
 
-An op with a negative second arg is equal to the negative op 1 level down with it's first op set to its own identity value, and the second arg set to the original op with a negated (positive) second arg.
+An op with a negative second arg is equal to the negative op 1 level down with it's first arg set to its own identity value, and the second arg set to the original op with a negated (positive) second arg.
 
 ]]]
 
