@@ -1,14 +1,5 @@
 class Math::Symbolic;
 
-# so this should be a class which represents the entire problem
-    # encapsulates both Tree and Language so they can be used together
-        # implements features which require both, like (de)serialization and isolating a variable in a relation
-    # this is the main public interface
-
-# other manipulations to support:
-    # arrange as a polynomial in terms of <var>
-    # factor polynomials in simplify and isolate
-
 use Math::Symbolic::Tree;
 use Math::Symbolic::Grammar;
 use Math::Symbolic::Language;
@@ -31,13 +22,10 @@ method new ($in, *%args is copy) {
 
     die 'Parse failure: invalid expression' unless $parse;
 
-    #self.dump_parse $parse;
     %args<tree> = self!convert_parse($parse);
     my $obj = self.bless: |%args;
-    #$obj.dump_tree;
     #$obj.simplify();
     #$obj.normalize();
-    #$obj.dump_tree;
 
     $obj;
 }
@@ -46,17 +34,24 @@ method clone () {
     self.bless: :tree(self.tree.clone);
 }
 
-method evaluate (*%vals is copy) {
+method evaluate (Bool:D :$no-repeat = False, *%vals is copy) {
     for %vals.values {
-        $_ = self.new(~$_).tree;
+        when Math::Symbolic::Tree {}
+        when Math::Symbolic {
+            $_ = $_.tree;
+        }
+        default {
+            $_ = self.new(~$_).tree;
+        }
     }
+
     my $hit = True;
     while $hit {
         $hit = False;
         for %vals.kv -> $var, $val {
             for $!tree.find_all( :type<symbol>, :content($var) ) {
-                set $_: $val;
-                $hit = True;
+                set $_: $val.clone;
+                $hit = True unless $no-repeat;
             }
         }
     }
@@ -73,26 +68,12 @@ method evaluate (*%vals is copy) {
     # TODO BUG speaking of minimizing complexity in ::Operation, please convert the .function/.syntax/.syntaxes/BUILD mess to Roles soon
 # this is also highly inefficient
 # there is a lot more that could be done with constants here esp. 0 like *0, 0*, 0/, ^0, ^/0...need special cases on ops or something
-# TODO really need to split this into 2
-    # normalize, for making ready for manipulation
-    # simplify, for maximal reduction, probably for display to the user
 method simplify () {
     my $tree = $!tree;
     my $hit = True;
     while $hit {
         $hit = False;
         my $node;
-
-        #`[[[
-        if $node = $tree.find( :type<operation>, :content('add'|'subtract'), :children(
-            *,
-            {:type<operation>, :content<negate>}
-        ) ) {
-            $node.content = $node.content.function.inverse;
-            $node.children[1] = $node.children[1].children[0];
-            $hit = True;
-        }
-        ]]]
 
         # x^-n = 1/x^n
         if $node = $tree.find( :type<operation>, :content('power'|'root'), :children(
@@ -277,12 +258,13 @@ method simplify () {
                                     $child.content === $inv_via {
                                     $node.content = $func.inverse;
                                     $child = $child.children[0];
+                                    $node.children .= reverse unless $i;
 
                                     $hit = True;
                                     last;
                                 }
 
-                                last if !$func.commute
+                                last unless $func.commute === True;
                             }
                         }
                     }
@@ -321,7 +303,8 @@ method fold ($tree = $!tree) {
     self;
 }
 
-method poly ($var) {
+method poly ($var, :$coef) {
+    print ''; # TODO reduce & report
     self.normalize;
     self.expand;
 
@@ -356,7 +339,7 @@ method poly ($var) {
                 $work = $tree.children[0];
             }
         }
-        
+
         my %zero = :type<value>, :content(0);
         unless $opp.match: |%zero {
             @($work.children) = $work.clone, $tree.new(
@@ -376,144 +359,7 @@ method poly ($var) {
         }
     }
 
-    # assumptions at this point:
-    # there is more than one instance of var
-    # var is contained within only + * and ^ operations from the root
-        # hope var isn't on the right of any ^
-    die "Error: cannot arrange '$work' as a polynomial" unless $work.type eq 'operation';
-
-    self.condense($var, $work);
-
-    my %coeffs;
-    my @parts = $work.match(:type<operation>, :content<add>) ??
-        $work.chain !!
-        $work;
-    my %var = :type<symbol>, :content($var);
-    for @parts {
-        when $_.match: |%var {
-            %coeffs{1} = $tree.new-val: 1;
-        }
-        when $_.match: :type<operation>, :content<multiply>,
-            :children(%var, *) {
-            %coeffs{1} = $_.children[1];
-        }
-        when $_.match: :type<operation>, :content<power>,
-            :children(%var, {:type<value>,}) {
-            %coeffs{$_.children[1]} = $tree.new-val: 1;
-        }
-        #`[[[ TODO BUG
-        when $_.match( :type<operation>, :content<multiply> ) &&
-            $_.children[0].match(
-                :type<operation>,
-                :content<power>,
-                :children(
-                    %var,
-                    # {:type<symbol>, :content($var)},
-                    # { :type<value>, }
-                    %( :type<value> )
-                )
-            )
-        ]]]
-        when $_.match( :type<operation>, :content<multiply> ) &&
-            $_.children[0].match( :type<operation>, :content<power> ) &&
-            $_.children[0].children[0].match(|%var) &&
-            $_.children[0].children[1].type eq 'value'
-        {
-            %coeffs{$_.children[0].children[1]} = $_.children[1];
-        }
-        default {
-            my $z := %coeffs{0};
-            if $z {
-                $z = $tree.new-op(%ops<add>, $z, $_);
-            } else {
-                $z = $_;
-            }
-        }
-    }
-
-    for %coeffs.keys.sort.reverse {
-        say "$_\t%coeffs{$_}";
-    }
-    exit;
-
-    #@paths = $tree.find_all: :type<symbol>, :content($var), :path;
-
-    #`[[[
-    my $levels = {
-        when 'add' { 3 }
-        when 'multiply' { 2 }
-        # when 'power' { 1 } in this case there could only be 1 var, or var^var
-        die "Cannot arrange '$work' as a polynomial";
-    }($work.content.Str);
-    #die "levels: $levels";
-
-    my $one = $tree.new: :type<value>, :content(1);
-    my %by_power;
-    my @parts = ($levels == 3 ?? $work.chain !! $work);
-    for @parts {
-        my $type = $_.type;
-        if $type eq 'symbol' {
-            if $_.content eq $var {
-                %by_power.push: 1 => $one.clone;
-            } else {
-                %by_power.push: 0 => $_;
-            }
-        } elsif $type eq 'value' {
-            %by_power.push: 0 => $_;
-        } elsif $type eq 'operation' {
-            my $content = $_.content;
-            if $content eq 'multiply' {
-                my $power = 0;
-                my @subparts;
-                for $_.chain -> $sub {
-                    my $subtype = $sub.type;
-                    my $subcontent = $sub.content;
-                    if $subtype eq 'symbol' && $subcontent eq $var {
-                        $power++;
-                    } elsif $subtype eq 'operation' && $subcontent eq 'power' && $sub.match:
-                        :children({:type<symbol>, :content($var)}, {:type<value>,}) {
-                        $power += $sub.children[1].content;
-                    } else {
-                        @subparts.push: $sub;
-                    }
-                }
-                my $subresult = @subparts ?? @subparts.shift !! $one.clone;
-                $subresult = $tree.new: :type<operation>, :content(%ops<multiply>),
-                    :children($subresult, @subparts.shift) while @subparts;
-                %by_power.push: $power => $subresult;
-            } elsif $content eq 'power' && $_.match:
-                :children({:type<symbol>, :content($var)}, {:type<value>,}) {
-                %by_power.push: $_.children[1].content => $one.clone;
-            } else {
-                %by_power.push: 0 => $_;
-            }
-        }
-    }
-
-    for %by_power.keys -> $k {
-        my $v := %by_power{$k};
-
-        next unless $v ~~ Positional;
-
-        if $v.elems == 1 {
-            $v = $v[0];
-            next;
-        }
-
-        my $new = $v.shift;
-        $new = $tree.new: :type<operation>, :content(%ops<add>),
-            :children($new, $v.shift) while @$v;
-
-        $v = $new;
-        
-        say "$k: $v";
-    };
-    ]]]
-
-    #@paths = $tree.find_all: :type<symbol>, :content($var), :path;
-    #$tree.child(|@$_).Str.say for @paths;
-
-    self;
+    self.condense($var, $work, :$coef);
 }
 
 my class MultiHash is rw {
@@ -558,7 +404,7 @@ my class MultiHash is rw {
     }
 }
 
-method condense ($var?, $tree = $!tree) {
+method condense ($var?, $tree = $!tree, :$coef = False) {
     my $type = $tree.type;
 
     if $type eq 'relation' {
@@ -619,7 +465,6 @@ method condense ($var?, $tree = $!tree) {
                         }
                     }
                 } elsif $_.match: :children({:type<symbol>,}, {:type<value>,}) {
-                    #%subvar_count{$_.children[0].content} += $_.children[1].content;
                     %subvar_count{$_.children[0].content}++;
                     %subvar_count{''} += $_.children[1].content;
                 } else {
@@ -637,14 +482,13 @@ method condense ($var?, $tree = $!tree) {
                         unless $count == $subfunc.identity;
                 }
 
-                $elem.push: $tree.new-chain: $up, |@subparts if @subparts;
+                $elem.push: $tree.new-chain: $up, @subparts if @subparts;
 
                 # TODO reduce & report: if this isn't here, rakudo gives
                 # "Internal error: zeroed target thread ID in work pass"
                 print '';
             } elsif $upup && $content eq $upup && $_.match:
                 :children({:type<symbol>,}, {:type<value>,}) {
-                #%var_count{$_.children[0].content}{$_.children[1].content} += 1;
                 $vars.elem($_.children[0].content => $_.children[1].content)[0] += 1;
             } else {
                 @parts.push: $_;
@@ -661,6 +505,7 @@ method condense ($var?, $tree = $!tree) {
 
     $vars.hash .= grep: { my $v := .value; $v[0] || $v.elems > 1 };
 
+    print ''; # TODO reduce & report
     if $var {
         my $newvars = $vars.new;
         # transform for requested $var here
@@ -684,7 +529,7 @@ method condense ($var?, $tree = $!tree) {
             #    ($up.function.eval)($elem[0], @$vals.shift) !!
             #    @$vals.shift;
             my $co = @$vals.shift;
-            unshift @subparts: $tree.new-val: $co if $co != $up.function.identity;
+            unshift @subparts: $tree.new-val: $co;# if $co != $up.function.identity;
             $elem.push: $tree.new-chain: $up, @subparts if @subparts;
             $elem.push: @$vals;
         }
@@ -694,7 +539,8 @@ method condense ($var?, $tree = $!tree) {
 
     # then convert back into a ::Tree and $tree.set
     my @new_parts;
-    for $vars.kv -> $keyhash, $vals {
+    for $vars.keys -> $keyhash {
+        my $vals := $vars.hash{$keyhash};
         my @subparts;
 
         if @$vals && $vals[0] ~~ Numeric {
@@ -727,10 +573,23 @@ method condense ($var?, $tree = $!tree) {
 
         @subparts.push: $tree.new-chain: $op, @$vals if @$vals;
 
-        @new_parts.push: $tree.new-chain: $up, |@subparts;
+        @new_parts.push: ($vals = $tree.new-chain: $up, @subparts);
     }
 
-    $tree.set: $tree.new-chain: $op, |@new_parts;
+    $tree.set: $tree.new-chain: $op, @new_parts;
+
+    if $coef {
+        die 'Error: returning coefficients is only supported for a single specific variable'
+            unless defined $var;
+        die "Error: couldn't reduce '$tree' to a polynomial in $var"
+            unless $vars.keys».keys.all eq $var;
+
+        my %return;
+        for $vars.kv -> $k, $v {
+            %return{$k.values[0]} = $v.children[1];
+        }
+        return %return;
+    }
 
     self;
 }
@@ -918,7 +777,6 @@ method expand () {
             }
         }
 
-        # do some more stuff in here
         # btw this tree/while/hit/find thing is looking familiar...wrap?
     }
 
@@ -950,9 +808,41 @@ multi method isolate (Str:D $var) {
 
     my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
     if @paths > 1 {
-        self.poly($var);
-        $tree.Str.say;
-        die 'Error: isolating multiple instances of a variable is NYI';
+        print ''; # TODO reduce & report
+        my %coeffs = self.poly($var, :coef);
+        print ''; # golfing this heisenbug is not going to be fun
+        die 'Error: can only solve polynomials of degree 0, 1, or 2'
+            unless %coeffs.keys.all == 0|1|2;
+
+        if %coeffs{1 & 2} :exists {
+            my $det = Math::Symbolic.new('b^2-4*a*c');
+            my $zero = Math::Symbolic::Tree.new-val: 0;
+            my %vars = :a(%coeffs<2>), :b(%coeffs<1>),
+                :c(%coeffs<0> // Math::Symbolic::Tree.new-val: 0);
+            my $detval = $det.evaluate(|%vars, :no-repeat).fold;
+            $detval = $detval.tree.type eq 'value' ?? +$det !! Any;
+            die 'Error: no real solutions, and complex numbers NYI'
+                if $detval && $detval < 0;
+            my $expr = $detval && $detval == 0 ??
+                'x = -b / 2*a' !!
+                'x = (-b ± √det) / (2*a)';
+            my $new = Math::Symbolic.new($expr);
+            %vars<x> = Math::Symbolic::Tree.new-sym: $var;
+            $new.evaluate: |%vars, :no-repeat;
+            $new.evaluate: :det($det), :no-repeat;
+            $new.simplify;
+            $tree.set: $new.tree;
+        } else {
+            # removes extraneous x^0 before re-calling isolate for a single instance of $var
+            for $tree.find_all: :type<operation>, :content<power>, :children(
+                { :type<symbol>, :content($var) },
+                { :type<value>, :content(0) }
+            ) {
+                $_.set: :type<value>, :content(1), :children();
+            }
+
+            self.isolate: $var;
+        }
     } elsif !@paths {
         die "Error: symbol '$var' not found in relation '$tree'";
     } else {
