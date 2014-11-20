@@ -1,5 +1,6 @@
-#use Grammar::Debugger;
 grammar Math::Symbolic::Grammar;
+
+#use Grammar::Debugger;
 
 # should have planned precedence levels:
     # circumfix ()
@@ -7,7 +8,6 @@ grammar Math::Symbolic::Grammar;
     # prefix    - √
     # infix
         # root  √
-            # I made this one up, as it's not really 'infix' in normal math notation
             # special case: operands are backwards from its inverse op ( ^ )
         # power ^
             # special case: right-to-left
@@ -47,6 +47,8 @@ my %syn = %(
 );
 
 
+
+# OMG ETOOMUCHBACKTRACKING
 
 token TOP { <equation> | <expression> }
 
@@ -115,10 +117,10 @@ for ^@prec {
 rule infix_operation_chain { <@( reverse @in_chains )> }
 ]]]
 
-token prefix_operation { <prefix_operator> <prefix_term> }
+rule prefix_operation { <.ws> <prefix_operator><prefix_term> }
 token prefix_operator { @(@pre».parts»[0]) }
 
-token postfix_operation { <postfix_term> <postfix_operator> }
+rule postfix_operation { <.ws> <postfix_term><postfix_operator> }
 token postfix_operator { @(@post».parts»[0]) }
 
 rule circumfix_operation { (<circumfix_open>) <expression> (<circumfix_close>) <?{ %circ{$0} eq $1 }> }
