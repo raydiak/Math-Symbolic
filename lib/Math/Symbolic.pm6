@@ -247,12 +247,21 @@ method simplify () {
                             for 1, 0 -> $i {
                                 my $child := $node.children[$i];
 
+                                my $do = False;
                                 if $child.type eq 'operation' &&
                                     $child.content === $inv_via {
-                                    $node.content = $func.inverse;
                                     $child = $child.children[0];
-                                    $node.children .= reverse unless $i;
+                                    $do = True;
+                                } elsif $inv_via eq 'negate' &&
+                                    $child.type eq 'value' &&
+                                    $child.content < 0 {
+                                    $child.content *= -1;
+                                    $do = True;
+                                }
 
+                                if $do {
+                                    $node.content = $func.inverse;
+                                    $node.children .= reverse unless $i;
                                     $hit = True;
                                     last;
                                 }
@@ -296,20 +305,19 @@ method fold ($tree = $!tree) {
     self;
 }
 
-method poly ($var, :$coef) {
+method poly ($var?, :$coef) {
     print ''; # TODO reduce & report
     self.normalize;
     self.expand;
 
     my $tree = $!tree;
 
-    my @paths = $tree.find_all: :type<symbol>, :content($var), :path
-        unless @paths;
-    die "Error: variable '$var' not found in '$tree'" unless @paths;
-
     my $work = $tree;
 
-    if $tree.type eq 'relation' {
+    if defined $var && $tree.type eq 'relation' {
+        my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
+        die "Error: variable '$var' not found in '$tree'" unless @paths;
+
         my %side_var := @paths»[0].Bag;
         my $side = +(%side_var{0} < %side_var{1});
         $tree.children .= reverse if $side;
@@ -352,7 +360,9 @@ method poly ($var, :$coef) {
         }
     }
 
-    self.condense($var, $work, :$coef);
+    my \ret = self.condense($var, $work, :$coef);
+    self.simplify;
+    ret;
 }
 
 my class MultiHash is rw {
@@ -398,6 +408,8 @@ my class MultiHash is rw {
 }
 
 method condense ($var?, $tree = $!tree, :$coef = False) {
+    # self.normalize: $tree;
+
     my $type = $tree.type;
 
     if $type eq 'relation' {
@@ -502,6 +514,8 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
 
     $vars.hash .= grep: { my $v := .value; $v[0] || $v.elems > 1 };
 
+    self.condense: Any, $_ for $vars.values».grep: Math::Symbolic::Tree;
+
     print ''; # TODO reduce & report
     if $var {
         my $newvars = $vars.new;
@@ -540,12 +554,6 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
         my $vals := $vars.hash{$keyhash};
         my @subparts;
 
-        if @$vals && $vals[0] ~~ Numeric {
-            my $v = $vals.shift;
-            @subparts.push: $tree.new-val: $v
-                if $v != $up.function.identity;
-        }
-
         for $keyhash.keys.sort -> $kk {
             my $kv := $keyhash{$kk};
             if (defined $var and $kk eq $var) || $kv != 1 {
@@ -553,12 +561,13 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
                 if $upup {
                     $new = $tree.new-op: $upup, $tree.new-sym($kk), $tree.new-val($kv);
                 } elsif $kv == $kv.Int && $kv > 0 {
-                    $new = $tree.new-sym($kk) for 1..$kv;
+                    $new.push: $tree.new-sym($kk) for 1..$kv;
+                    $new = $tree.new-chain: $up, |@$new;
                 } else {
                     # really, checking for this is sorta inane...how would we get here?
                     die "Error: this transformation would require the Knuth up arrow (NYI)";
                 }
-                if defined($var) && $kk eq $var {
+                if defined($var) && $kk eq $var && $up.function.commute {
                     @subparts.unshift: $new;
                 } else {
                     @subparts.push: $new;
@@ -568,12 +577,18 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
             }
         }
 
+        if @$vals && $vals[0] ~~ Numeric &&
+            (my $v = $vals.shift) != $op.function.identity {
+            if $op.function.commute { $vals.unshift: $tree.new-val: $v }
+            else { $vals.push: $tree.new-val: $v }
+        }
+
         @subparts.push: $tree.new-chain: $op, @$vals if @$vals;
 
         @new_parts.push: ($vals = $tree.new-chain: $up, @subparts);
     }
 
-    $tree.set: $tree.new-chain: $op, @new_parts;
+    $tree.set: $tree.new-chain($op, @new_parts);
 
     if $coef {
         die 'Error: returning coefficients is only supported for a single specific variable'
@@ -595,8 +610,7 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
 # expands shorthand ops (eg a² -> a^2)
 # inverts non-commutative ops to commutable forms (eg a-b -> a+-1*b)
 # folds constants
-method normalize () {
-    my $tree = $!tree;
+method normalize ($tree = $!tree) {
     my $hit = True;
     while $hit {
         $hit = False;
@@ -669,10 +683,10 @@ method normalize () {
             }
         }
 
-        # these two last to allow the above to match sometimes
+        # these two should come last to allow the former to match inverse ops
 
         # invert -> power
-        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
+        if !$hit && ($node = $tree.find( :type<operation>, :content<invert> )) {
             $node.content = %ops<power>;
             $node.children[1] = $tree.new(:type<value>, :content(-1));
             $hit = True;
