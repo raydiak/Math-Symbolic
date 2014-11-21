@@ -54,13 +54,11 @@ method evaluate (Bool:D :$no-repeat = False, *%vals is copy) {
     self.simplify;
 }
 
-# this whole routine is very dumb and could be made smarter with a limited search through a (lazy?) network of possible manipulations
-# TODO for now as a simpler stopgap, we could at least do more property-based generic manipulations, like the identity value stuff
-    # but avoid adding more code in the ops like how commute is done for division and subtraction now, it feels messy and poorly encapsulated
+# TODO need more property-based generic manipulations and per-op special cases, like *0, ^0, etc
+    # but avoid adding code in the ops
     # iow properties are good for Operations (as long as they're optional with sane defaults), but code in those properties is bad, because the point of the Operation class is to be a simple declarative way to express the language, so minimizing complexity in the public API of ::Operation is central to its intended purpose
-    # TODO BUG speaking of minimizing complexity in ::Operation, please convert the .function/.syntax/.syntaxes/BUILD mess to Roles soon
+    # TODO BUG speaking of minimizing complexity in ::Operation, please convert the .function/.syntax/.syntaxes/BUILD mess to Roles or something soon
 # this is also highly inefficient
-# there is a lot more that could be done with constants here esp. 0 like *0, 0*, 0/, ^0, ^/0...need special cases on ops or something
 method simplify () {
     my $tree = $!tree;
     my $hit = True;
@@ -796,24 +794,6 @@ method expand () {
     self;
 }
 
-# this routine is pretty dumb too, and could be enhanced with a similar network approach
-    # simply peeling back all the ops by applying the inverse to the other side won't always work
-    # we also don't currently have any way of solving for a variable which appears more than once
-# each node represents a possible arrangement of the expression
-# each edge represents a possible manipulation of the expression
-# both isolate & simplify involve walking branches outwards
-# nodes/arrangements/representations:
-    # need a hash function to track and not re-walk them
-    # need a 'complexity' metric...just count all the nodes in the expression? we even already have a count method...what about tie-breaking?
-# cognition-inspired ideas:
-    # some sort of "distance" metric between arrangements, to more efficiently prioritize search branches
-        # all truths are connected, but only a small number of them are closer to the answer we seek than the question we start with
-    # pick some other points known to be in the "right area", and path-find to them first, or outwards from them, to have established territory to work from
-        # I'm sure Sun Tzu must have said something about awareness of your surroundings
-        # this is a geometric way to talk about implementing foreknown optimization hints
-    # prioritize solving more difficult/restrictive parts first...iow plan the tricky parts of the path first, then fill in the boring parts in between
-        # don't waste time bikeshedding until you can know the requirements of the bikeshed
-    # mix and balance these approaches
 proto method isolate (|) {*}
 
 multi method isolate (Str:D $var) {
@@ -824,8 +804,9 @@ multi method isolate (Str:D $var) {
         print ''; # TODO reduce & report
         my %coeffs = self.poly($var, :coef);
         print ''; # golfing this heisenbug is not going to be fun
-        die 'Error: can only solve polynomials of degree 0, 1, or 2'
-            unless %coeffs.keys.all == 0|1|2;
+        die "Error: cannot isolate $var in '{self}': " ~
+            'the polynomial must have only one variable term, or be degree 0, 1, or 2'
+            unless %coeffs.keys.grep(* ne 0) <= 1 || %coeffs.keys.all == 0|1|2;
 
         if %coeffs{1 & 2} :exists {
             my $det = Math::Symbolic.new('b^2-4*a*c');
