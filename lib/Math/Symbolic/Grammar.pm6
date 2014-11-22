@@ -66,10 +66,10 @@ token variable { <alpha> <alnum>* }
 rule term { \s* [<variable>|<constant>] }
 
 token operation {
-    <infix_operation_chain> |
     <circumfix_operation> |
     <postfix_operation> |
-    <prefix_operation>
+    <prefix_operation> |
+    <infix_operation_chain>
 }
 
 token infix_term {
@@ -92,6 +92,7 @@ token prefix_term {
     <circumfix_operation> |
     <postfix_operation> | # TODO BUG postfix is hard-coded to take precedence over prefix for now
     <prefix_operation> |
+    <infix_chain_c> |
     <term>
 }
 
