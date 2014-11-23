@@ -29,6 +29,12 @@ method clone () {
     self.bless: :tree(self.tree.clone);
 }
 
+method child (*@i[Int:D]) {
+    my $child = $!tree;
+    $child = $child.children[$_] for @i;
+    self.bless: tree => $child;
+}
+
 method code ($language = 'perl6', $tree = $!tree) {
     $tree.translate: $language;
 }
