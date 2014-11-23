@@ -35,6 +35,13 @@ method child (*@i[Int:D]) {
     self.bless: tree => $child;
 }
 
+method var (Str:D $var) {
+    my $new := self.clone.isolate($var);
+    my $tree := $new.tree;
+    $tree.set: $tree.children[1];
+    $new;
+}
+
 method code ($language = 'perl6', $tree = $!tree) {
     $tree.translate: $language;
 }
