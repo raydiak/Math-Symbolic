@@ -67,30 +67,27 @@ rule term { \s* [<variable>|<constant>] }
 
 token operation {
     <circumfix_operation> |
-    <postfix_operation> |
+    <postfix_operation_chain> |
     <prefix_operation> |
     <infix_operation_chain>
 }
 
 token infix_term {
     <circumfix_operation> |
-    <postfix_operation> |
+    <postfix_operation_chain> |
     <prefix_operation> |
     <term>
 }
 
 token postfix_term {
     <circumfix_operation> |
-    # <postfix_operation> | # TODO BUG cannot chain postfix ops
-            # recognize postfix chains, similar to infix...prefix too?
-            # or a lookahead assertion, but this doesn't reduce the recursion as above would
     # <prefix_operation> | # TODO BUG postfix is hard-coded to take precedence over prefix for now
     <term>
 }
 
 token prefix_term {
     <circumfix_operation> |
-    <postfix_operation> | # TODO BUG postfix is hard-coded to take precedence over prefix for now
+    <postfix_operation_chain> | # TODO BUG postfix is hard-coded to take precedence over prefix for now
     <prefix_operation> |
     <infix_chain_c> |
     <term>
@@ -124,7 +121,10 @@ rule infix_operation_chain { <@( reverse @in_chains )> }
 rule prefix_operation { <.ws> <prefix_operator><prefix_term> }
 token prefix_operator { @(@pre».parts»[0]) }
 
-rule postfix_operation { <.ws> <before .* <postfix_operator> > <postfix_term><postfix_operator> }
+rule postfix_operation_chain {
+    <.ws> <before .* <postfix_operator> >
+    <postfix_term><postfix_operator>+
+}
 token postfix_operator { @(@post».parts»[0]) }
 
 rule circumfix_operation { (<circumfix_open>) <expression> (<circumfix_close>) <?{ %circ{$0} eq $1 }> }

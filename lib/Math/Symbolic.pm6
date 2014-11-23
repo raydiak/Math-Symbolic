@@ -982,13 +982,15 @@ method !convert_parse ($parse, $part = '') {
             $type = 'operation';
             $content = $op;
         }
-    } elsif $part eq 'postfix_operation' {
-        my $key = $parse<postfix_operator>.Str;
-        my $op = %syn<postfix>{$key};
-        if $op.function {
-            $type = 'operation';
-            $content = $op;
+    } elsif $part eq 'postfix_operation_chain' {
+        my @keys = $parse<postfix_operator>.list».Str;
+        my $node;
+        while @keys {
+            my $op = %syn<postfix>{@keys.shift};
+            $node = Math::Symbolic::Tree.new-op: $op, $node // @children.shift
+                if $op.function;
         }
+        return $node;
     }
 
     my $node;
