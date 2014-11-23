@@ -24,11 +24,18 @@ my @operations = (
             :associative,
             :normal
         },
-        :syntax{
-            :type<infix>,
-            :precedence(3),
-            :parts< + >
-        }
+        :syntaxes(
+            {
+                :type<infix>,
+                :precedence(3),
+                :parts< + >
+            },
+            {
+                :language<perl6>,
+                :type<infix>,
+                :parts< + >
+            },
+        ),
     ),
     Op(
         :name<subtract>,
@@ -38,11 +45,18 @@ my @operations = (
             :invert-via<negate>,
             :identity(0)
         },
-        :syntax{
-            :type<infix>,
-            :precedence(3),
-            :parts< - >
-        }
+        :syntaxes(
+            {
+                :type<infix>,
+                :precedence(3),
+                :parts< - >
+            },
+            {
+                :language<perl6>,
+                :type<infix>,
+                :parts< - >
+            },
+        ),
     ),
     Op(
         :name<multiply>,
@@ -57,11 +71,18 @@ my @operations = (
             :associative,
             :normal
         },
-        :syntax{
-            :type<infix>,
-            :precedence(2),
-            :parts< * >
-        }
+        :syntaxes(
+            {
+                :type<infix>,
+                :precedence(2),
+                :parts< * >
+            },
+            {
+                :language<perl6>,
+                :type<infix>,
+                :parts< * >
+            },
+        ),
     ),
     Op(
         :name<divide>,
@@ -71,11 +92,18 @@ my @operations = (
             :invert-via<invert>,
             :identity(1)
         },
-        :syntax{
-            :type<infix>,
-            :precedence(2),
-            :parts< / >
-        }
+        :syntaxes(
+            {
+                :type<infix>,
+                :precedence(2),
+                :parts< / >
+            },
+            {
+                :language<perl6>,
+                :type<infix>,
+                :parts< / >
+            },
+        ),
     ),
     Op(
         :name<power>,
@@ -87,11 +115,18 @@ my @operations = (
             :identity(1),
             :normal
         },
-        :syntax{
-            :type<infix>,
-            :precedence(1),
-            :parts< ^ >
-        },
+        :syntaxes(
+            {
+                :type<infix>,
+                :precedence(1),
+                :parts< ^ >
+            },
+            {
+                :language<perl6>,
+                :type<infix>,
+                :parts< ** >
+            },
+        ),
     ),
     Op(
         :name<root>,
@@ -112,7 +147,12 @@ my @operations = (
                 :type<infix>,
                 :precedence(1),
                 :parts< ^/ >
-            }
+            },
+            {
+                :language<perl6>,
+                :type<infix>,
+                :parts< **1/ >
+            },
         )
     ),
     Op(
@@ -121,10 +161,17 @@ my @operations = (
             :eval( * ** .5 ),
             :inverse<sqr>
         },
-        :syntax{
-            :type<prefix>,
-            :parts< √ >
-        }
+        :syntaxes(
+            {
+                :type<prefix>,
+                :parts< √ >
+            },
+            {
+                :language<perl6>,
+                :type<postfix>,
+                :parts< **.5 >
+            },
+        ),
     ),
     Op(
         :name<sqr>,
@@ -137,10 +184,17 @@ my @operations = (
 
             :inverse<sqrt>
         },
-        :syntax{
-            :type<postfix>,
-            :parts< ² >
-        }
+        :syntaxes(
+            {
+                :type<postfix>,
+                :parts< ² >
+            },
+            {
+                :language<perl6>,
+                :type<postfix>,
+                :parts< **2 >
+            },
+        ),
     ),
     Op(
         :name<factorial>,
@@ -154,10 +208,17 @@ my @operations = (
         :function{
             :eval( *.abs )
         },
-        :syntax{
-            :type<circumfix>,
-            :parts< | | >
-        }
+        :syntaxes(
+            {
+                :type<circumfix>,
+                :parts< | | >
+            },
+            {
+                :language<perl6>,
+                :type<postfix>,
+                :parts< .abs >
+            },
+        ),
     ),
     Op(
         :name<negate>,
@@ -165,10 +226,17 @@ my @operations = (
             :eval( &prefix:<-> ),
             :inverse<negate>
         },
-        :syntax{
-            :type<prefix>,
-            :parts< - >
-        }
+        :syntaxes(
+            {
+                :type<prefix>,
+                :parts< - >
+            },
+            {
+                :language<perl6>,
+                :type<prefix>,
+                :parts< - >
+            },
+        ),
     ),
     Op(
         :name<invert>,
@@ -176,10 +244,17 @@ my @operations = (
             :eval( * ** -1 ),
             :inverse<invert>
         },
-        :syntax{
-            :type<postfix>,
-            :parts< ⁻¹ >
-        }
+        :syntaxes(
+            {
+                :type<postfix>,
+                :parts< ⁻¹ >
+            },
+            {
+                :language<perl6>,
+                :type<postfix>,
+                :parts< **-1 >
+            },
+        ),
     ),
     Op(
         :name<addsubtract>,
@@ -235,6 +310,7 @@ sub build_by_syntax (Bool :$syntax = False) {
         for @syn.keys -> $syn_i {
             my $syn = @syn[$syn_i];
             next unless $syn && (my $type = $syn.type);
+            next if defined $syn.language;
             my %syn_type := (%by_syntax{$type} //= Hash.new);
             my $key = $syn.key;
             my $entry := %syn_type{$key};

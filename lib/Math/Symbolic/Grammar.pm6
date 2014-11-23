@@ -19,6 +19,7 @@ use Math::Symbolic::Language;
 my (@circ, @pre, @post, %in);
 for Math::Symbolic::Language.operations.grep({.syntaxes}) -> $op {
     for $op.syntaxes -> $syn {
+        next if defined $syn.language;
         given $syn.type {
             when 'circumfix' {
                 @circ.push: $syn;

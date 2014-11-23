@@ -48,6 +48,7 @@ class Math::Symbolic::Syntax {
     has Bool $.reverse = False;
     has @.parts;
     has $.key = @!parts.join: '';
+    has $.language;
 
     method make_str (@args) {
         my $str;
@@ -84,8 +85,21 @@ class Math::Symbolic::Operation {
 
     method Str () { $.name }
 
-    method syntax (Int:D $i = 0 --> Math::Symbolic::Syntax) is rw {
-        @!syntaxes[$i]
+    method syntax (Int $i? is copy, :$language --> Math::Symbolic::Syntax) is rw {
+        my $use-lang = defined $language;
+
+        unless defined $i {
+            my &check = $use-lang ??
+                { defined $_.value.language && $_.value.language eq $language } !!
+                { !defined $_.value.language };
+            $i = @!syntaxes.pairs.first(&check).key;
+        }
+
+        die "Error: could not find {$use-lang ?? "$language " !! ''}syntax for $!name"
+            unless defined $i;
+
+        @!syntaxes[$i] // die "Error: could not find {
+            $use-lang ?? "$language " !! ''}syntax for $!name";
     }
 
     submethod BUILD (:%function, :%syntax, :@syntaxes, :$!name, :$arity is copy) {

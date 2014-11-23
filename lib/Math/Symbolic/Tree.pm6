@@ -148,7 +148,7 @@ method Str () {
                 my $child = @.children[$child_i];
                 if $child.type eq 'operation' {
                     my $this_op = $child.content;
-                    my $this_syn = $this_op.syntax // die "Error: No syntax to stringify for '{$.content.name}' operations";
+                    my $this_syn = $this_op.syntax;
                     my $this_prec = $this_syn.precedence;
                     if defined($prec) && defined($this_prec) && (
                         $this_prec > $prec or
@@ -171,6 +171,39 @@ method Str () {
             die "Error: Can't stringify nodes of type '$.type'";
         }
     }
+}
+
+method translate (Str:D $language is copy) {
+    $language = 'perl6' if $language eq ''|'perl';
+    die "Error: translate to $language is not supported"
+        unless $language eq 'perl6';
+
+    return '' unless defined self;
+
+    # it is hoped to extend this for pluggable language support, but for now is hard-coded for perl 6 only, in spite of also requiring the $language parameter
+    my $str = '';
+    given $.type {
+        when 'operation' {
+            my $op = $.content;
+            my $syn = $op.syntax(:$language);
+            my @args = @.children».translate: $language;
+            $str = $syn.make_str(@args);
+        }
+        when 'relation' {
+            $str = @.children».translate($language).join: $.content.Str;
+        }
+        when 'symbol' {
+            $str = '$' ~ $.content.Str;
+        }
+        when 'value' {
+            $str = $.content.Str;
+        }
+        default {
+            die "Error: Can't stringify nodes of type '$.type'";
+        }
+    }
+
+    "($str)";
 }
 
 method Numeric () {

@@ -29,6 +29,27 @@ method clone () {
     self.bless: :tree(self.tree.clone);
 }
 
+method code ($language = 'perl6', $tree = $!tree) {
+    $tree.translate: $language;
+}
+
+method routine (@positional = (), $tree = $!tree) {
+    my @vars = $tree.find_all(:type<symbol>)».content.Set.list.sort.squish;
+    @vars .= grep: * !∈ @positional;
+
+    my @sig;
+    @sig.push: @positional.map({"Numeric:D \$$_"});
+    @sig.push: @vars.map({"Numeric:D :\$$_"});
+    my $sig = '--> Numeric:D';
+    $sig = @sig.join(', ') ~ " $sig" if @sig;
+
+    "sub ($sig) is pure \{ " ~ $tree.translate('perl6') ~ ' };';
+}
+
+method compile (@positional = (), $tree = $!tree) {
+    EVAL self.routine(@positional, $tree);
+}
+
 method evaluate (Bool:D :$no-repeat = False, *%vals is copy) {
     for %vals.values {
         when Math::Symbolic::Tree {}
