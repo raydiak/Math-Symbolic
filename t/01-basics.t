@@ -19,8 +19,8 @@ is
     'README example works';
 
 is
-    Math::Symbolic.new("a²+b²=c²").isolate("c").child(1).evaluate(
-        :a<x2-x1>, :b<y2-y1>).compile(<x1 y1 x2 y2>).( -1,-1, 2,3 ),
+    Math::Symbolic.new('a²+b²=c²').var('c').evaluate(:a<x2-x1>, :b<y2-y1>)\
+        .compile(<x1 y1 x2 y2>).( -1,-1, 2,3 ),
     5,
     'can convert Pythagorean theorem into Perl distance subroutine';
 
