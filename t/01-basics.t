@@ -1,7 +1,7 @@
 use v6;
 
 use Test;
-plan 5;
+plan 6;
 
 use Math::Symbolic;
 
@@ -17,5 +17,11 @@ is
     Math::Symbolic.new('y=m*x+b').isolate('x').evaluate(:m(1), :b(0)).Str,
     'x=y',
     'README example works';
+
+is
+    Math::Symbolic.new("a²+b²=c²").isolate("c").child(1).evaluate(
+        :a<x2-x1>, :b<y2-y1>).compile(<x1 y1 x2 y2>).( -1,-1, 2,3 ),
+    5,
+    'can convert Pythagorean theorem into Perl distance subroutine';
 
 done;
