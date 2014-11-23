@@ -33,22 +33,28 @@ method code ($language = 'perl6', $tree = $!tree) {
     $tree.translate: $language;
 }
 
-method routine ($positional = False, %defaults = (), $tree = $!tree) {
-    my @vars = $tree.find_all(:type<symbol>)».content.Set.list.sort.squish;
+method routine ($positional = False, $defaults? is copy, $tree = $!tree) {
+    my @vars = $tree.find_all(:type<symbol>)».content.sort.squish;
+    if defined $defaults {
+        $defaults = Hash.new: @vars.map: * => $defaults
+            unless $defaults ~~ Associative;
+    } else {
+        $defaults = {};
+    }
     if $positional === True { @$positional = @vars; @vars = (); }
     elsif $positional { @vars .= grep: * !∈ @$positional; }
 
     my @sig;
     if $positional {
         for @$positional {
-            my $default = %defaults{$_};
+            my $default = $defaults{$_};
             $default = $default.defined ?? " = $default" !! '';
             @sig.push: "Numeric:D \$$_$default";
         }
     }
 
     for @vars {
-        my $default = %defaults{$_};
+        my $default = $defaults{$_};
         $default = $default.defined ?? " = $default" !! '!';
         @sig.push: "Numeric:D :\$$_$default";
     }
