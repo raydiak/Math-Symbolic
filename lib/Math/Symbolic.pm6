@@ -33,21 +33,34 @@ method code ($language = 'perl6', $tree = $!tree) {
     $tree.translate: $language;
 }
 
-method routine (@positional = (), $tree = $!tree) {
+method routine ($positional = False, %defaults = (), $tree = $!tree) {
     my @vars = $tree.find_all(:type<symbol>)».content.Set.list.sort.squish;
-    @vars .= grep: * !∈ @positional;
+    if $positional === True { @$positional = @vars; @vars = (); }
+    elsif $positional { @vars .= grep: * !∈ @$positional; }
 
     my @sig;
-    @sig.push: @positional.map({"Numeric:D \$$_"});
-    @sig.push: @vars.map({"Numeric:D :\$$_"});
+    if $positional {
+        for @$positional {
+            my $default = %defaults{$_};
+            $default = $default.defined ?? " = $default" !! '';
+            @sig.push: "Numeric:D \$$_$default";
+        }
+    }
+
+    for @vars {
+        my $default = %defaults{$_};
+        $default = $default.defined ?? " = $default" !! '!';
+        @sig.push: "Numeric:D :\$$_$default";
+    }
+
     my $sig = '--> Numeric:D';
     $sig = @sig.join(', ') ~ " $sig" if @sig;
 
     "sub ($sig) is pure \{ " ~ $tree.translate('perl6') ~ ' };';
 }
 
-method compile (@positional = (), $tree = $!tree) {
-    EVAL self.routine(@positional, $tree);
+method compile (|args) {
+    EVAL self.routine(|args);
 }
 
 method evaluate (Bool:D :$no-repeat = False, *%vals is copy) {
