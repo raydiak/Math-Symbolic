@@ -110,6 +110,12 @@ This method is another candidate for the network-searching discussed above
 under .isolate(), or at least more extensive use of the properties of the
 operations, instead of hard-coded patterns of reduction.
 
+#### .expression(Str:D $var)
+
+Creates a new Math::Symbolic object from the expression on the right-hand side
+of a relation after isolating $var on the left. Note that unlike the above
+transformations, no changes are made to the original object.
+
 #### .count()
 
 Returns the number of nodes in the expression's tree. This could be useful to

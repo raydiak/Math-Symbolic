@@ -33,7 +33,7 @@ method child (|args) {
     self.bless: tree => $!tree.child(|args);
 }
 
-method var (Str:D $var) {
+method expression (Str:D $var) {
     my $new := self.clone.isolate($var);
     my $tree := $new.tree;
     $tree.set: $tree.children[1];
