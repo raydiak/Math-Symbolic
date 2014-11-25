@@ -379,7 +379,7 @@ method poly ($var?, :$coef) {
             my @path;
             my $i = 0;
             my $max_elems = @paths».elems.min;
-            while $max_elems > $i && @paths»[$i].uniq == 1 {
+            while $max_elems > $i && @paths»[$i].unique == 1 {
                 @path[$i] = @paths[0][$i];
                 $i++;
             }
