@@ -110,6 +110,21 @@ This method is another candidate for the network-searching discussed above
 under .isolate(), or at least more extensive use of the properties of the
 operations, instead of hard-coded patterns of reduction.
 
+#### .poly(Str $var?)
+
+Attempts to arrange the equation/expression in polynomial form. If $var is
+given, terms are grouped for that specific variable. Otherwise terms are
+grouped separately according to the set of all variables in a term. For example
+"x²+x²\*y" will be unchanged by .poly(), but .poly('x') will rearrange it to
+something like "x²\*(1+y)". Unlike the formal definition of a polynomial, this
+function may accept and return any expression for coefficients, and allows for
+exponents of any constant value.
+
+If .poly is called on a relation and $var is not passed, it will simply apply
+the process to each side of the relation separately (this behavior is likely to
+change in the future). If $var is passed, the relation is first arranged so
+that the right side is equal to zero, before grouping terms on the left.
+
 #### .expression(Str:D $var)
 
 Creates a new Math::Symbolic object from the expression on the right-hand side
