@@ -363,7 +363,7 @@ method poly ($var?, :$coef) {
 
     my $work = $tree;
 
-    if defined $var && $tree.type eq 'relation' {
+    if $tree.type eq 'relation' && defined $var {
         my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
         die "Error: variable '$var' not found in '$tree'" unless @paths;
 
@@ -409,6 +409,7 @@ method poly ($var?, :$coef) {
         }
     }
 
+    say self;exit;
     my \ret = self.condense($var, $work, :$coef);
     self.simplify;
     ret;
