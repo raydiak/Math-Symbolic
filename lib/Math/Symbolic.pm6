@@ -409,7 +409,6 @@ method poly ($var?, :$coef) {
         }
     }
 
-    say self;exit;
     my \ret = self.condense($var, $work, :$coef);
     self.simplify;
     ret;
