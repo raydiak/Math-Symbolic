@@ -24,7 +24,10 @@ sub MAIN ($expression, $isolate_var?, *%vars) {
     $obj.evaluate(|%vars) if %vars;
     #$obj.dump_tree;
 
-    $obj.isolate($isolate_var) if defined $isolate_var;
+    if defined $isolate_var {
+        if $isolate_var eq '0' { $obj.poly }
+        else { $obj.isolate: $isolate_var }
+    }
     #$obj.dump_tree;
 
     say $obj.simplify.Str;

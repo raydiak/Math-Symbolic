@@ -29,8 +29,11 @@ in Perl 6 code, will print
 
 A basic command line program named 'symbolic' is provided, and may be installed
 in your PATH. It takes at least one positional argument: the relation or
-expression to work with.  If a second positional is passed, it is the name of
-the variable to isolate.
+expression to work with. If a second positional is passed, it is the name of
+the variable to isolate in the given relation (non-relation expressions are
+unsupported for isolation). If "0" is passed instead of a variable name, the
+relation is arranged with 0 on the right side and terms grouped by variable
+(when possible) on the left side.
 
 If any named args are passed, they are substituted into the expression for the
 variables they name. Each named argument's value is parsed as an expression
