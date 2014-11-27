@@ -103,15 +103,12 @@ Makes a childish attempt to reduce the complexity of the expression by
 evaluating operations on constants, removing operations on identity values (and
 eventually other special cases like 0, inverse identity, etc). Also already
 does a very small number of rearrangements of combinations of operations, like
-transforming a/b/c into a\*c/b.
+transforming a+-b into a-b.
 
-.simplify is currently always called at the end of .isolate and .evaluate, so
-calling it directly is only necessary if other manipulations aren't done on the
-expression. An option to disable this for performance will be added.
-
-This method is another candidate for the network-searching discussed above
-under .isolate(), or at least more extensive use of the properties of the
-operations, instead of hard-coded patterns of reduction.
+.simplify is sometimes called after certain manipulations like .isolate and
+.poly which might otherwise leave messy expressions e.g. operations with
+identity values and awkward forms of negation and inversion. It is also called
+at the end of the command line tool for output of the final result.
 
 #### .poly(Str $var?)
 
