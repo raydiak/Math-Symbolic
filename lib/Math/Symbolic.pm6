@@ -363,32 +363,36 @@ method poly ($var?, :$coef) {
 
     my $work = $tree;
 
-    if $tree.type eq 'relation' && defined $var {
-        my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
-        die "Error: variable '$var' not found in '$tree'" unless @paths;
+    if $tree.type eq 'relation' {
+        my $side = 0;
+        if defined $var {
+            my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
+            die "Error: variable '$var' not found in '$tree'" unless @paths;
 
-        my %side_var := @paths»[0].Bag;
-        my $side = +(%side_var{0} < %side_var{1});
+            my %side_var := @paths»[0].Bag;
+            $side = +(%side_var{0} < %side_var{1});
+
+            if %side_var.keys == 1 {
+                my @path;
+                my $i = 0;
+                my $max_elems = @paths».elems.min;
+                while $max_elems > $i && @paths»[$i].unique == 1 {
+                    @path[$i] = @paths[0][$i];
+                    $i++;
+                }
+
+                if @path > 1 {
+                    self.isolate: :@path;
+                    $side = 0;
+                }
+            } # TODO else do something clever? can't solve t=√t, but can solve t²=t...
+        } else {
+            $side = ($tree.children[0].count < $tree.children[1].count);
+        }
+
         $tree.children .= reverse if $side;
-
         $work = $tree.children[0];
         my $opp := $tree.children[1];
-
-        if %side_var.keys == 1 {
-            @paths = $tree.find_all: :type<symbol>, :content($var), :path;
-            my @path;
-            my $i = 0;
-            my $max_elems = @paths».elems.min;
-            while $max_elems > $i && @paths»[$i].unique == 1 {
-                @path[$i] = @paths[0][$i];
-                $i++;
-            }
-
-            if @path > 1 {
-                self.isolate: :@path;
-                $work = $tree.children[0];
-            }
-        }
 
         my %zero = :type<value>, :content(0);
         unless $opp.match: |%zero {

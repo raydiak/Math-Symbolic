@@ -120,10 +120,10 @@ something like "x²\*(1+y)". Unlike the formal definition of a polynomial, this
 function may accept and return any expression for coefficients, and allows for
 exponents of any constant value.
 
-If .poly is called on a relation and $var is not passed, it will simply apply
-the process to each side of the relation separately (this behavior is likely to
-change in the future). If $var is passed, the relation is first arranged so
-that the right side is equal to zero, before grouping terms on the left.
+If .poly is called on a relation, it is first arranged so that the right side
+is equal to zero, before grouping terms on the left. An attempt is made to
+guess which side should be subtracted from the other to avoid ending up with an
+excessive amount of negation.
 
 #### .expression(Str:D $var)
 
