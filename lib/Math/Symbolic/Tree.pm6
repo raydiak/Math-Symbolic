@@ -4,23 +4,6 @@ has $.type;
 has $.content;
 has @.children;
 
-# note only looks for first result
-method contains (:$type, :$content) {
-    die 'At least one of :type or :content is required' unless defined $type || defined $content;
-    
-    my $hit = True;
-    $hit &&= ($type eq $.type) if defined $type;
-    $hit &&= ($content eq $.content) if $hit && defined $content;
-    
-    return self if $hit;
-
-    for @.children {
-        return $_ if .contains(:$type, :$content);
-    }
-
-    return False;
-}
-
 method match (*%s) {
     CATCH {die "Error in match: $_\nMatch: {%s.perl}"};
 
