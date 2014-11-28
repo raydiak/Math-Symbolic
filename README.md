@@ -131,6 +131,28 @@ Creates a new Math::Symbolic object from the expression on the right-hand side
 of a relation after isolating $var on the left. Note that unlike the above
 transformations, no changes are made to the original object.
 
+#### .compile($positional = False, $defaults?)
+
+Returns a Perl subroutine which is mathematically equivalent to the
+Math::Symbolic expression. Not all operations are currently supported.
+Compiling relations is also undefined behavior at this time.
+
+All arguments are named by default. If $positional is True, all arguments are
+positional instead, sorted in default Perl sort order. If $positional is itself
+a Positional class then only the listed variables will be taken positionally,
+in the specified order.
+
+All arguments are also required by default. If $defaults is an Associative
+object, it is taken as a map of variable names to default values, and the
+listed variables will be optional. If $defaults is any other defined value,
+that value is taken as the default for all arguments.
+
+#### .routine($positional = False, $defaults?)
+
+Identical to .compile (above), but returns the code as a string without
+compiling via EVAL, for instance to embed the code into another module or
+script.
+
 #### .count()
 
 Returns the number of nodes in the expression's tree. This could be useful to
