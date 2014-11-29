@@ -1,7 +1,7 @@
 use v6;
 
 use Test;
-plan 6;
+plan 7;
 
 use Math::Symbolic;
 
@@ -16,7 +16,9 @@ is Math::Symbolic.new('a^3+b*2').expand.Str, 'a*a*a+b+b', '.expand() works';
 is
     Math::Symbolic.new('y=m*x+b').isolate('x').evaluate(:m(1), :b(0)).Str,
     'x=y',
-    'README example works';
+    'README slope-intercept example works';
+
+is Math::Symbolic.new("a+-b").simplify.Str, 'a-b', '.simplify documentation is correct';
 
 is
     Math::Symbolic.new('a²+b²=c²').expression('c')\
