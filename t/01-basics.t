@@ -1,7 +1,7 @@
 use v6;
 
 use Test;
-plan 7;
+plan 8;
 
 use Math::Symbolic;
 
@@ -12,6 +12,8 @@ is Math::Symbolic.new('x+y=1').isolate('x').Str, 'x=1-y', '.isolate() works';
 is Math::Symbolic.new('x+y').evaluate(y => 2).Str, 'x+2', '.evaluate() works';
 
 is Math::Symbolic.new('a^3+b*2').expand.Str, 'a*a*a+b+b', '.expand() works';
+
+is Math::Symbolic.new('m=(y2-y1)/(x2-x1)').expression('y2').Str, 'm*(x2-x1)+y1';
 
 is
     Math::Symbolic.new('y=m*x+b').isolate('x').evaluate(:m(1), :b(0)).Str,
