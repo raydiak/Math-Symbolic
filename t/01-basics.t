@@ -13,7 +13,7 @@ is Math::Symbolic.new('x+y').evaluate(y => 2).Str, 'x+2', '.evaluate() works';
 
 is Math::Symbolic.new('a^3+b*2').expand.Str, 'a*a*a+b+b', '.expand() works';
 
-is Math::Symbolic.new('m=(y2-y1)/(x2-x1)').expression('y2').Str, 'm*(x2-x1)+y1';
+is Math::Symbolic.new('m=(y2-y1)/(x2-x1)').expression('y2').Str, 'm*(x2-x1)+y1', '.expression() works';
 
 is
     Math::Symbolic.new('y=m*x+b').isolate('x').evaluate(:m(1), :b(0)).Str,
