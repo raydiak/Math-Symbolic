@@ -1,7 +1,7 @@
 use v6;
 
 use Test;
-plan 8;
+plan 9;
 
 use Math::Symbolic;
 
@@ -21,6 +21,8 @@ is
     'README slope-intercept example works';
 
 is Math::Symbolic.new("a+-b").simplify.Str, 'a-b', '.simplify documentation is correct';
+
+is Math::Symbolic.new("x²").routine(< x >).EVAL.(4), 16, '.routine().EVAL works';
 
 is
     Math::Symbolic.new('a²+b²=c²').expression('c')\
