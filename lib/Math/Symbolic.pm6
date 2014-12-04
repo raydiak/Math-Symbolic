@@ -355,7 +355,6 @@ method fold ($tree = $!tree) {
 }
 
 method poly ($var?, :$coef) {
-    print ''; # TODO reduce & report
     self.normalize;
     self.expand;
 
@@ -406,10 +405,6 @@ method poly ($var?, :$coef) {
             $opp = $tree.new: |%zero;
 
             self.expand;
-
-            # TODO reduce & report: if this isn't here, rakudo gives
-            # "Internal error: zeroed target thread ID in work pass"
-            print '';
         }
     }
 
@@ -545,10 +540,6 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
                 }
 
                 $elem.push: $tree.new-chain: $up, @subparts if @subparts;
-
-                # TODO reduce & report: if this isn't here, rakudo gives
-                # "Internal error: zeroed target thread ID in work pass"
-                print '';
             } elsif $upup && $content eq $upup && $_.match:
                 :children({:type<symbol>,}, {:type<value>,}) {
                 $vars.elem($_.children[0].content => $_.children[1].content)[0] += 1;
@@ -569,7 +560,6 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
 
     self.condense: Any, $_ for $vars.values».grep: Math::Symbolic::Tree;
 
-    print ''; # TODO reduce & report
     if $var {
         my $newvars = $vars.new;
         # transform for requested $var here
@@ -856,9 +846,7 @@ multi method isolate (Str:D $var) {
 
     my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
     if @paths > 1 {
-        print ''; # TODO reduce & report
         my %coeffs = self.poly($var, :coef);
-        print ''; # golfing this heisenbug is not going to be fun
         die "Error: cannot isolate $var in '{self}': " ~
             'the polynomial must have only one variable term, or be degree 0, 1, or 2'
             unless %coeffs.keys.grep(* ne 0) <= 1 || %coeffs.keys.all == 0|1|2;
