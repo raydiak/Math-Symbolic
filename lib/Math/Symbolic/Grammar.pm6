@@ -96,10 +96,13 @@ token prefix_term {
 
 # for now, we will have to use a hard-coded number of precedence levels
 # until the problem with the following block can be resolved
+my $in_ops_a = '[' ~ @(%in{@prec[2]}».parts»[0]).map("'" ~ * ~ "'").join('|') ~ ']';
+my $in_ops_b = '[' ~ @(%in{@prec[1]}».parts»[0]).map("'" ~ * ~ "'").join('|') ~ ']';
+my $in_ops_c = '[' ~ @(%in{@prec[0]}».parts»[0]).map("'" ~ * ~ "'").join('|') ~ ']';
 rule infix_operation_chain { <infix_chain_a> | <infix_chain_b> | <infix_chain_c> }
-rule infix_chain_a {<before .+? @(%in{@prec[2]}».parts»[0])><infix_term_a>[ $<op>=(@(%in{@prec[2]}».parts»[0])) <infix_term_a>]+}
-rule infix_chain_b {<before .+? @(%in{@prec[1]}».parts»[0])><infix_term_b>[ $<op>=(@(%in{@prec[1]}».parts»[0])) <infix_term_b>]+}
-rule infix_chain_c {<before .+? @(%in{@prec[0]}».parts»[0])><infix_term_c>[ $<op>=(@(%in{@prec[0]}».parts»[0])) <infix_term_c>]+}
+rule infix_chain_a {<before .+? <$in_ops_a>><infix_term_a>[ $<op>=<$in_ops_a> <infix_term_a>]+}
+rule infix_chain_b {<before .+? <$in_ops_b>><infix_term_b>[ $<op>=<$in_ops_b> <infix_term_b>]+}
+rule infix_chain_c {<before .+? <$in_ops_c>><infix_term_c>[ $<op>=<$in_ops_c> <infix_term_c>]+}
 token infix_term_a { <infix_chain_b> | <infix_term_b> }
 token infix_term_b { <infix_chain_c> | <infix_term_c> }
 token infix_term_c { <infix_term> }
@@ -120,17 +123,21 @@ rule infix_operation_chain { <@( reverse @in_chains )> }
 ]]]
 
 rule prefix_operation { <.ws> <prefix_operator><prefix_term> }
-token prefix_operator { @(@pre».parts»[0]) }
+my $pre_ops = '[' ~ @(@pre».parts»[0]).map("'" ~ * ~ "'").join('|') ~ ']';
+token prefix_operator { <$pre_ops> }
 
 rule postfix_operation_chain {
     <.ws> <before .* <postfix_operator> >
     <postfix_term><postfix_operator>+
 }
-token postfix_operator { @(@post».parts»[0]) }
+my $post_ops = '[' ~ @(@post».parts»[0]).map("'" ~ * ~ "'").join('|') ~ ']';
+token postfix_operator { <$post_ops> }
 
 rule circumfix_operation { (<circumfix_open>) <expression> (<circumfix_close>) <?{ %circ{$0} eq $1 }> }
-token circumfix_open { @(%circ.keys) }
-token circumfix_close { @(%circ.values) }
+my $circ_open = '[' ~ @(%circ.keys).map("'" ~ * ~ "'").join('|') ~ ']';
+my $circ_close = '[' ~ @(%circ.values).map("'" ~ * ~ "'").join('|') ~ ']';
+token circumfix_open { <$circ_open> }
+token circumfix_close { <$circ_close> }
 
 
 
