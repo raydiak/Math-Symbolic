@@ -1,7 +1,7 @@
 module Math::Symbolic::Constants;
 
-enum Representation <Tree Matrix> is export;
-enum Expression <Relation Operation Symbol Value> is export;
-enum Language <Math Perl> is export;
+our enum Representation is export <Tree Matrix>;
+our enum Expression is export <Relation Operation Symbol Value>;
+our enum Language is export <Math Perl>;
 
 
