@@ -20,6 +20,8 @@ class Math::Symbolic::Function {
     has $.up is rw;
     has $.down is rw;
 
+    has @.variants is rw;
+
     method Str () { $.name }
 
     multi method perl(::CLASS:D:) {

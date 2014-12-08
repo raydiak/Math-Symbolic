@@ -33,6 +33,14 @@ method child (|args) {
     self.bless: tree => $!tree.child(|args);
 }
 
+method list () {
+    my @vars = $.tree.list;
+
+    @vars > 1 ??
+        @vars.map: { self.bless: tree => $_ } !!
+        self;
+}
+
 method expression (Str:D $var) {
     my $new := self.clone.isolate($var);
     my $tree := $new.tree;

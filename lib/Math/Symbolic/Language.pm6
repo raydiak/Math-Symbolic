@@ -260,6 +260,7 @@ my @operations = (
         :name<addsubtract>,
         :function{
             :identity(0),
+            :variants(<add subtract>)
         },
         :syntax{
             :type<infix>,
@@ -284,9 +285,9 @@ for @operations {
     my $func = $_.function;
     next unless $func;
 
-    for <inverse invert-via up down> -> $prop {
-        if my $val := $func."$prop"() {
-            next unless $val ~~ Str;
+    for <inverse invert-via up down variants> -> $prop {
+        for $func."$prop"() <-> $val {
+            next unless $val && $val ~~ Str;
             my $op = %by_name{$val};
             die "Cannot find '$val' operation" unless $op;
             $val = $op;

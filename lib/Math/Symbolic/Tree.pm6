@@ -78,13 +78,42 @@ method count () {
     [+] @.children».count, 1
 }
 
+method list () {
+    my @return;
+
+    if $.type eq 'operation' &&
+        (my $func = $.content.function) &&
+        (my @vars = $func.variants) {
+        for @vars {
+            my $var = self.clone;
+            $var.content = $_;
+            push @return, $var;
+        }
+    } else {
+        @return = self;
+    }
+
+    for @.children.kv -> $i, $v {
+        my @vars = $v.list;
+        if @vars > 1 {
+            my @orig_vars = @return;
+            @return = ();
+            for @vars -> $var {
+                push @return, @orig_vars.map({my $o = $_.clone; $o.child($i) = $var; $o});
+            }
+        }
+    }
+
+    @return;
+}
+
 proto method child(|) {*}
 
-multi method child($i) {
+multi method child($i) is rw {
     @.children[$i];
 }
 
-multi method child ($i, *@i) {
+multi method child ($i, *@i) is rw {
     @.children[$i].child(|@i);
 }
 
