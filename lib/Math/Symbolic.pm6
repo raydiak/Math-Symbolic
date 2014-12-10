@@ -10,7 +10,7 @@ my %syn_syn := Math::Symbolic::Language.syntax_by_syntax;
 
 has $.tree handles <Numeric Str count>;
 
-method new ($in, *%args is copy) {
+multi method new ($in, *%args is copy) {
 
     my $parse = Math::Symbolic::Grammar.parse(~$in);
 
