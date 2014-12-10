@@ -12,15 +12,12 @@ has $.tree handles <Numeric Str count>;
 
 method new ($in, *%args is copy) {
 
-    # TODO this is by far the slowest part, over 2.4 seconds for 'x=(-b+(b^2-4*a*c)^.5)/(2*a)' on an A4-3305M
     my $parse = Math::Symbolic::Grammar.parse(~$in);
 
     die 'Parse failure: invalid expression' unless $parse;
 
     %args<tree> = self!convert_parse($parse);
     my $obj = self.bless: |%args;
-    #$obj.simplify();
-    #$obj.normalize();
 
     $obj;
 }
@@ -547,9 +544,6 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
                 };
             }
             my $elem := $newvars.elem($var => $power);
-            #$elem[0] = @$elem ??
-            #    ($up.function.eval)($elem[0], @$vals.shift) !!
-            #    @$vals.shift;
             my $co = @$vals.shift;
             unshift @subparts: $tree.new-val: $co;# if $co != $up.function.identity;
             $elem.push: $tree.new-chain: $up, @subparts if @subparts;
@@ -575,7 +569,6 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
                     $new.push: $tree.new-sym($kk) for 1..$kv;
                     $new = $tree.new-chain: $up, |@$new;
                 } else {
-                    # really, checking for this is sorta inane...how would we get here?
                     die "Error: this transformation would require the Knuth up arrow (NYI)";
                 }
                 if defined($var) && $kk eq $var && $up.function.commute {
@@ -917,8 +910,6 @@ multi method isolate (:@path) {
         $work = $next;
     }
 
-    #self.simplify();
-    #self.normalize();
     self;
 }
 
@@ -1005,7 +996,6 @@ method !convert_parse ($parse, $part = '') {
     }
 
     my $node;
-    #if !($part || $type || $content) && @children == 1 {
     if !($type || $content) && @children == 1 {
         $node = @children[0];
     } elsif $type || $content || @children {
