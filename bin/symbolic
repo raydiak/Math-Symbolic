@@ -6,17 +6,10 @@ use v6;
 # a few other front ends eventually could be cool
     # REPL
     # GUI analyzer/solver/teacher
-    # a daemon for long-running searches of complex problem spaces
-        # persistence
-        # pause/resume
-        # throttle
-        # concurrency
-        # clusterable
-    # each of these applications is also a good source of feature ideas for the module itself
 
 use Math::Symbolic;
 
-sub MAIN ($expression, $isolate_var?, *%vars) {
+sub MAIN ($expression, $isolate_var?, Bool:D :$perl-routine = False, *%vars) {
     my $obj = Math::Symbolic.new($expression);
     #say ~$obj;
     #$obj.dump_tree;
@@ -30,7 +23,9 @@ sub MAIN ($expression, $isolate_var?, *%vars) {
     }
     #$obj.dump_tree;
 
-    say $obj.simplify.Str;
+    $obj.simplify;
+
+    say $perl-routine ?? $obj.routine !! $obj.Str;
 }
 
 
