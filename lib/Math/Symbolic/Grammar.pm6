@@ -49,14 +49,13 @@ my %syn = %(
 
 
 
-# OMG ETOOMUCHBACKTRACKING
-
 token TOP { <equation> | <expression> }
 
 token equation { <before <-[ = ]>+ \= > <expression> \= <expression> }
 
 # putting term first here would speed things up, think about negate ramifications
 # also other places like infix_term etc
+# this ties in with the - prefix op vs negative constant question
 rule expression { \s* [<operation>|<term>] }
 
 token sign { \+ | \- }
