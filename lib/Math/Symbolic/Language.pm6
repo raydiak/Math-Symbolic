@@ -7,6 +7,30 @@ class Math::Symbolic::Language;
     # think about the ways in which both tree and grammar use these
     # also think about future internal and external use cases, API-wise
 
+# might prefer to turn this into an abstract base class for languages
+#`[[[ maybe reduce an entire language to a single table w/columns like: 
+name/function
+sequence of static and dynamic parts
+    not sure how best to represent this yet
+    this one list will serve the purposes of arity, type, reverse, parts, and key
+        though many of those may still exist as ro attrs/methods (like key is now), but won't need to be directly specified
+precedence and language are an interesting question: in an ideal world, they wouldn't be specified here at all,
+    instead a precedence level would be an unordered set of its syntaxes, and a language would be an ordered set of precedence groups
+    this is interesting, because things like -fixness position, arity, and rtl vs ltr should be consistent across a whole precedence group anyway
+    so really, the sequence structure is a property of the precedence group, only the choice of characters for the static parts in that sequence varies per op
+    btw rtl vs ltr isn't addressed here yet either...just another flag? associativity too
+
+currently:
+    has $.name;
+    has $.arity;
+    has $.type; # prefix, postfix, infix, circumfix
+    has $.precedence;
+    has Bool $.reverse = False;
+    has @.parts;
+    has $.key = @!parts.join: '';
+    has $.language;
+]]]
+
 use Math::Symbolic::Operation;
 
 sub Op (|args) { Math::Symbolic::Operation.new(|args) }
