@@ -23,18 +23,18 @@ multi method new ($in, *%args is copy) {
 }
 
 method clone () {
-    self.bless: :tree(self.tree.clone);
+    self.new: tree => self.tree.clone;
 }
 
 method child (|args) {
-    self.bless: tree => $!tree.child(|args);
+    self.new: tree => $!tree.child: |args;
 }
 
 method list () {
     my @vars = $.tree.list;
 
     @vars > 1 ??
-        @vars.map: { self.bless: tree => $_ } !!
+        @vars.map: { self.new: tree => $_ } !!
         self;
 }
 
