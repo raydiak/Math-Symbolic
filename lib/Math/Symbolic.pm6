@@ -85,26 +85,20 @@ method compile (|args) {
     EVAL self.routine(|args);
 }
 
-method evaluate (Bool:D :$no-repeat = False, *%vals is copy) {
-    for %vals.values {
-        when Math::Symbolic::Tree {}
-        when Math::Symbolic {
-            $_ = $_.tree;
-        }
-        default {
-            $_ = self.new(~$_).tree;
-        }
-    }
-
-    my $hit = True;
-    while $hit {
-        $hit = False;
-        for %vals.kv -> $var, $val {
-            for $!tree.find_all( :type<symbol>, :content($var) ) {
-                set $_: $val.clone;
-                $hit = True unless $no-repeat;
+method evaluate (*%vals is copy) {
+    for %vals.kv <-> $var, $val {
+        given $val {
+            when Math::Symbolic::Tree {}
+            when Math::Symbolic {
+                $_ = $_.tree;
+            }
+            default {
+                $_ = self.new(~$_).tree;
             }
         }
+
+        $_.set: $val.clone
+            for $!tree.find_all: :type<symbol>, :content($var);
     }
 
     self.simplify;
@@ -817,7 +811,7 @@ multi method isolate (Str:D $var) {
             my $zero = Math::Symbolic::Tree.new-val: 0;
             my %vars = :a(%coeffs<2>), :b(%coeffs<1>),
                 :c(%coeffs<0> // Math::Symbolic::Tree.new-val: 0);
-            my $detval = $det.evaluate(|%vars, :no-repeat).fold;
+            my $detval = $det.evaluate(|%vars).fold;
             $detval = $detval.tree.type eq 'value' ?? +$det !! Any;
             die 'Error: no real solutions, and complex numbers NYI'
                 if $detval && $detval < 0;
@@ -826,8 +820,8 @@ multi method isolate (Str:D $var) {
                 'x = (-b ± √det) / (2*a)';
             my $new = Math::Symbolic.new($expr);
             %vars<x> = Math::Symbolic::Tree.new-sym: $var;
-            $new.evaluate: |%vars, :no-repeat;
-            $new.evaluate: :det($det), :no-repeat;
+            $new.evaluate: |%vars;
+            $new.evaluate: :$det;
             $tree.set: $new.tree;
         } else {
             # removes extraneous x^0 before re-calling isolate for a single instance of $var
