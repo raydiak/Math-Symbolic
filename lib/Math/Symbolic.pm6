@@ -808,20 +808,20 @@ multi method isolate (Str:D $var) {
 
         if %coeffs{1 & 2} :exists {
             my $det = Math::Symbolic.new('b^2-4*a*c');
-            my $zero = Math::Symbolic::Tree.new-val: 0;
             my %vars = :a(%coeffs<2>), :b(%coeffs<1>),
                 :c(%coeffs<0> // Math::Symbolic::Tree.new-val: 0);
-            my $detval = $det.evaluate(|%vars).fold;
-            $detval = $detval.tree.type eq 'value' ?? +$det !! Any;
-            die 'Error: no real solutions, and complex numbers NYI'
-                if $detval && $detval < 0;
-            my $expr = $detval && $detval == 0 ??
+
+            $det.evaluate(|%vars).fold;
+            my $detval = $det.tree.type eq 'value' ?? +$det !! Any;
+
+            my $expr = $detval.defined && $detval == 0 ??
                 'x = -b / 2*a' !!
                 'x = (-b ± √det) / (2*a)';
             my $new = Math::Symbolic.new($expr);
             %vars<x> = Math::Symbolic::Tree.new-sym: $var;
             $new.evaluate: |%vars;
             $new.evaluate: :$det;
+            
             $tree.set: $new.tree;
         } else {
             # removes extraneous x^0 before re-calling isolate for a single instance of $var
