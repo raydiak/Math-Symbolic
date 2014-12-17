@@ -86,19 +86,18 @@ method compile (|args) {
 }
 
 method evaluate (*%vals is copy) {
-    for %vals.kv <-> $var, $val {
-        given $val {
-            when Math::Symbolic::Tree {}
-            when Math::Symbolic {
-                $_ = $_.tree;
-            }
-            default {
-                $_ = self.new(~$_).tree;
-            }
+    for %vals.values {
+        when Math::Symbolic::Tree {}
+        when Math::Symbolic {
+            $_ = $_.tree;
         }
+        default {
+            $_ = self.new(~$_).tree;
+        }
+    }
 
-        $_.set: $val.clone
-            for $!tree.find_all: :type<symbol>, :content($var);
+    for $!tree.find_all: :type<symbol>, :content(%vals.keys.any) {
+        $_.set: %vals{$_.content}.clone;
     }
 
     self.simplify;
