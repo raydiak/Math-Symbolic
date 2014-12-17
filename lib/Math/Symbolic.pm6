@@ -819,8 +819,7 @@ multi method isolate (Str:D $var) {
                 'x = (-b ± √det) / (2*a)';
             my $new = Math::Symbolic.new($expr);
             %vars<x> = Math::Symbolic::Tree.new-sym: $var;
-            $new.evaluate: |%vars;
-            $new.evaluate: :$det;
+            $new.evaluate: |%vars, :$det;
             
             $tree.set: $new.tree;
         } else {
