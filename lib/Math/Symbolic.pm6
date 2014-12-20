@@ -844,7 +844,7 @@ multi method isolate (Str:D $var) {
 our $det_template;
 our $quad_template_det;
 our $quad_template_nodet;
-method isolate_quadratic (:$a!, :$b!, :$c!, :$tree = $!tree) {
+method isolate_quadratic ($var, $a, $b, $c, :$tree = $!tree) {
     $det_template //= Math::Symbolic.new('b^2-4*a*c');
     $quad_template_det //= Math::Symbolic.new('x = (-b ± √det) / (2*a)');
     $quad_template_nodet //= Math::Symbolic.new('x = -b / 2*a');
@@ -856,8 +856,9 @@ method isolate_quadratic (:$a!, :$b!, :$c!, :$tree = $!tree) {
     my $new = $detval.defined && $detval == 0 ??
         $quad_template_nodet.clone !!
         $quad_template_det.clone;
-    %vars<x> = Math::Symbolic::Tree.new-sym: $var;
-    $new.evaluate: :$a, :$b, :$c, :$det;
+
+    $new.evaluate: :$a, :$b, :$c, :$det,
+         :x(Math::Symbolic::Tree.new-sym: $var);
 
     $tree.set: $new.tree;
 }
