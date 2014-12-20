@@ -793,57 +793,7 @@ method expand () {
     self;
 }
 
-proto method isolate (|) {*}
-
-multi method isolate (Str:D $var) {
-    my $tree = $!tree;
-
-    my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
-    if @paths > 1 {
-        my %coeffs = self.poly($var, :coef);
-        die "Error: cannot isolate $var in '{self}': " ~
-            'the polynomial must have only one variable term, or be degree 0, 1, or 2'
-            unless %coeffs.keys.grep(* ne 0) <= 1 || %coeffs.keys.all == 0|1|2;
-
-        if %coeffs{1 & 2} :exists {
-            my $det = Math::Symbolic.new('b^2-4*a*c');
-            my %vars = :a(%coeffs<2>), :b(%coeffs<1>),
-                :c(%coeffs<0> // Math::Symbolic::Tree.new-val: 0);
-
-            $det.evaluate(|%vars).fold;
-            my $detval = $det.tree.type eq 'value' ?? +$det !! Any;
-
-            my $expr = $detval.defined && $detval == 0 ??
-                'x = -b / 2*a' !!
-                'x = (-b ± √det) / (2*a)';
-            my $new = Math::Symbolic.new($expr);
-            %vars<x> = Math::Symbolic::Tree.new-sym: $var;
-            $new.evaluate: |%vars, :$det;
-            
-            $tree.set: $new.tree;
-        } else {
-            # removes extraneous x^0 before re-calling isolate for a single instance of $var
-            for $tree.find_all: :type<operation>, :content<power>, :children(
-                { :type<symbol>, :content($var) },
-                { :type<value>, :content(0) }
-            ) {
-                $_.set: :type<value>, :content(1), :children();
-            }
-
-            self.isolate: $var;
-        }
-    } elsif !@paths {
-        die "Error: symbol '$var' not found in relation '$tree'";
-    } else {
-        self.isolate: :path(@paths[0]);
-    }
-
-    self.simplify;
-}
-
-our $det_template;
-our $quad_template_det;
-our $quad_template_nodet;
+our ($det_template, $quad_template_det, $quad_template_nodet);
 method isolate_quadratic ($var, $a, $b, $c, :$tree = $!tree) {
     $det_template //= Math::Symbolic.new('b^2-4*a*c');
 
@@ -863,6 +813,41 @@ method isolate_quadratic ($var, $a, $b, $c, :$tree = $!tree) {
     $tree.set: $new.tree;
 
     self;
+}
+
+proto method isolate (|) {*}
+
+multi method isolate (Str:D $var) {
+    my $tree = $!tree;
+
+    my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
+    if @paths > 1 {
+        my %coeffs = self.poly($var, :coef);
+        die "Error: cannot isolate $var in '{self}': " ~
+            'the polynomial must have only one variable term, or be degree 0, 1, or 2'
+            unless %coeffs.keys.grep(* ne 0) <= 1 || %coeffs.keys.all == 0|1|2;
+
+        if %coeffs{1 & 2} :exists {
+            %coeffs<0> //= Math::Symbolic::Tree.new-val: 0;
+            self.isolate_quadratic($var, |%coeffs{2...0});
+        } else {
+            # removes extraneous x^0 before re-calling isolate for a single instance of $var
+            for $tree.find_all: :type<operation>, :content<power>, :children(
+                { :type<symbol>, :content($var) },
+                { :type<value>, :content(0) }
+            ) {
+                $_.set: :type<value>, :content(1), :children();
+            }
+
+            self.isolate: $var;
+        }
+    } elsif !@paths {
+        die "Error: symbol '$var' not found in relation '$tree'";
+    } else {
+        self.isolate: :path(@paths[0]);
+    }
+
+    self.simplify;
 }
 
 multi method isolate (:@path) {
