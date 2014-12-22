@@ -32,4 +32,12 @@ is
     5,
     'can convert Pythagorean theorem into Perl distance subroutine';
 
+#`[[[
+is
+    Math::Symbolic.new('t²=x²').evaluate(:x<V*t+P>).evaluate(:V(2), :P(-3))\
+        .expression('t').list».Numeric.sort.Str,
+    "1 3",
+    'quadratic solution to the leading problem in 1D seems correct';
+]]]
+
 done;
