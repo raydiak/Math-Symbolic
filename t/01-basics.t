@@ -1,7 +1,7 @@
 use v6;
 
 use Test;
-plan 10;
+plan 11;
 
 use Math::Symbolic;
 
@@ -32,12 +32,11 @@ is
     5,
     'can convert Pythagorean theorem into Perl distance subroutine';
 
-#`[[[
 is
-    Math::Symbolic.new('t²=x²').evaluate(:x<V*t+P>).evaluate(:V(2), :P(-3))\
-        .expression('t').list».Numeric.sort.Str,
+    Math::Symbolic.new('t²=x²').evaluate(:x<V*t+P>)\
+        #.evaluate(:V(2), :P(-3)).expression('t').list».Numeric.sort,
+        .expression('t').list».compile(<P V>)».(-3, 2).sort, # workaround precomp bug
     "1 3",
     'quadratic solution to the leading problem in 1D seems correct';
-]]]
 
 done;
