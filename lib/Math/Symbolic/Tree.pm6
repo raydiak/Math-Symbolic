@@ -219,9 +219,18 @@ method translate (Str:D $language is copy) {
 }
 
 method Numeric () {
-    self.type eq 'operation' ??
-        (self.content.function.eval)(|@(self.children».Numeric)) !!
-        +self.Str;
+    given self.type {
+        when 'operation' {
+            my $op = self.content;
+            my $func = $op.function or
+                die "Error: cannot numify; no function for operation $op";
+            my &eval = $op.function.eval or
+                die "Error: cannot numify; no eval routine for operation $op";
+            eval(|@(self.children».Numeric))
+        };
+        when 'value' { +self.content };
+        default { die "Error: cannot numify nodes of type '$_'" };
+    }
 }
 
 method clone () {
