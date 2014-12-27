@@ -47,8 +47,6 @@ my %syn = %(
     post => $%(@post.map: {.key => $_})
 );
 
-
-
 token TOP { <equation> | <expression> }
 
 token equation { <before <-[ = ]>+ \= > <expression> \= <expression> }
@@ -137,6 +135,4 @@ my $circ_open = '[' ~ @(%circ.keys).map("'" ~ * ~ "'").join('|') ~ ']';
 my $circ_close = '[' ~ @(%circ.values).map("'" ~ * ~ "'").join('|') ~ ']';
 token circumfix_open { <$circ_open> }
 token circumfix_close { <$circ_close> }
-
-
 
