@@ -64,15 +64,15 @@ token variable { <alpha> <alnum>* }
 rule term { \s* [<variable>|<constant>] }
 
 token operation {
-    <circumfix_operation> |
     <postfix_operation_chain> |
+    <circumfix_operation> |
     <prefix_operation> |
     <infix_operation_chain>
 }
 
 token infix_term {
-    <circumfix_operation> |
     <postfix_operation_chain> |
+    <circumfix_operation> |
     <prefix_operation> |
     <term>
 }
@@ -84,8 +84,8 @@ token postfix_term {
 }
 
 token prefix_term {
-    <circumfix_operation> |
     <postfix_operation_chain> | # TODO BUG postfix is hard-coded to take precedence over prefix for now
+    <circumfix_operation> |
     <prefix_operation> |
     <infix_chain_c> |
     <term>
