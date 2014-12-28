@@ -49,7 +49,9 @@ At the time of this writing, most of the API is too unstable to document yet.
 To minimize exposure to the internal chaos and to provide a starting point for
 thinking about what functionality needs to exist in a more formal future API, a
 minimal temporary public interface is implemented as a small collection of
-simple methods in the main Math::Symbolic class.
+simple methods in the main Math::Symbolic class. Note that where the actual
+signatures differ from what is documented here, the undocumented differences
+are considered "private", and may not do what is expected.
 
 #### .new(Str:D $expression)
 
