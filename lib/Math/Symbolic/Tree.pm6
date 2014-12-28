@@ -162,10 +162,19 @@ method Str () {
                     my $this_op = $child.content;
                     my $this_syn = $this_op.syntax;
                     my $this_prec = $this_syn.precedence;
-                    if defined($prec) && defined($this_prec) && (
-                        $this_prec > $prec or
-                        $child_i > 0 && ($this_prec == $prec) && (!$assoc or $this_op !=== $op)
-                    ) or $syn.type eq none('infix', 'circumfix', $this_syn.type) {
+                    if
+                        defined($prec) &&
+                        defined($this_prec) && (
+                            $this_prec > $prec
+                        or
+                            $child_i > 0 &&
+                            ($this_prec == $prec) &&
+                            (!$assoc or $this_op !=== $op)
+                        )
+                    or
+                        $syn.type eq none('infix', 'circumfix', $this_syn.type) &&
+                        not $syn.type eq 'prefix' && $this_syn.type eq 'postfix'
+                    {
                         # () here is a hard-coded hack and should be looked up as the first defined non-function circumfix
                         @args[$child_i] = '(' ~ @args[$child_i] ~ ')';
                     }
