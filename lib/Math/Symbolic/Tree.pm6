@@ -1,5 +1,7 @@
 class Math::Symbolic::Tree is rw;
 
+use Math::Symbolic::Constants;
+
 has $.type;
 has $.content;
 has @.children;
@@ -59,7 +61,7 @@ method chain (Bool :$ops = False) {
 
     die "Error: can only call .chain() on operations; this is a{
         ($type ~~ /^<[aeiou]>/ ?? 'n ' !! ' ') ~ $type
-    }" unless $type eq 'operation';
+    }" unless $type eq Operation;
 
     my @chain;
     @chain.push: self if $ops;
@@ -81,7 +83,7 @@ method count () {
 method list () {
     my @return;
 
-    if $.type eq 'operation' &&
+    if $.type eq Operation &&
         (my $func = $.content.function) &&
         (my @vars = $func.variants) {
         for @vars {
@@ -150,7 +152,7 @@ method Str () {
     return '' unless defined self;
 
     given $.type {
-        when 'operation' {
+        when Operation {
             my $op = $.content;
             my $assoc = $op.function.associative;
             my $syn = $op.syntax // die "Error: No syntax to stringify for '{$op.name}' operations";
@@ -158,7 +160,7 @@ method Str () {
             my $prec = $syn.precedence;
             for ^@args -> $child_i {
                 my $child = @.children[$child_i];
-                if $child.type eq 'operation' {
+                if $child.type eq Operation {
                     my $this_op = $child.content;
                     my $this_syn = $this_op.syntax;
                     my $this_prec = $this_syn.precedence;
@@ -182,10 +184,10 @@ method Str () {
             }
             return $syn.make_str(@args);
         }
-        when 'relation' {
+        when Relation {
             return @.children».Str.join: $.content.Str;
         }
-        when 'symbol' | 'value' {
+        when Symbol | Value {
             return $.content.Str;
         }
         default {
@@ -204,19 +206,19 @@ method translate (Str:D $language is copy) {
     # it is hoped to extend this for pluggable language support, but for now is hard-coded for perl 6 only, in spite of also requiring the $language parameter
     my $str = '';
     given $.type {
-        when 'operation' {
+        when Operation {
             my $op = $.content;
             my $syn = $op.syntax(:$language);
             my @args = @.children».translate: $language;
             $str = $syn.make_str(@args);
         }
-        when 'relation' {
+        when Relation {
             $str = @.children».translate($language).join: $.content.Str;
         }
-        when 'symbol' {
+        when Symbol {
             $str = '$' ~ $.content.Str;
         }
-        when 'value' {
+        when Value {
             $str = $.content.Str;
         }
         default {
@@ -229,7 +231,7 @@ method translate (Str:D $language is copy) {
 
 method Numeric () {
     given self.type {
-        when 'operation' {
+        when Operation {
             my $op = self.content;
             my $func = $op.function or
                 die "Error: cannot numify; no function for operation $op";
@@ -237,7 +239,7 @@ method Numeric () {
                 die "Error: cannot numify; no eval routine for operation $op";
             eval(|@(self.children».Numeric))
         };
-        when 'value' { +self.content };
+        when Value { +self.content };
         default { die "Error: cannot numify nodes of type '$_'" };
     }
 }
@@ -251,7 +253,7 @@ method new-chain ($op, *@children is copy, *%args is copy) {
 
     return @children[0] unless @children > 1;
 
-    %args<type> = 'operation';
+    %args<type> = Operation;
     %args<content> = $op;
 
     my $chain = self.new: |%args, :children(@children.shift, @children.shift);
@@ -261,21 +263,21 @@ method new-chain ($op, *@children is copy, *%args is copy) {
 }
 
 method new-val ($val, *%args is copy) {
-    %args<type> = 'value';
+    %args<type> = Value;
     %args<content> = $val;
 
     self.new: |%args;
 }
 
 method new-sym ($sym, *%args is copy) {
-    %args<type> = 'symbol';
+    %args<type> = Symbol;
     %args<content> = $sym;
 
     self.new: |%args;
 }
 
 method new-op ($op, *@children, *%args is copy) {
-    %args<type> = 'operation';
+    %args<type> = Operation;
     %args<content> = $op;
     %args<children>.push: @children if @children;
 
