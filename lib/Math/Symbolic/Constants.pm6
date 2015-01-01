@@ -1,9 +1,11 @@
 module Math::Symbolic::Constants;
 
-our enum Representation is export <Tree Matrix>;
-our enum Expression is export <Relation Operation Symbol Value>;
-our enum Language is export <Math Perl>;
+# is this just another node type?
+#enum Representation is export <Tree Matrix>;
 
-our subset NumIn of Numeric is export;
-our subset NumOut of Real:D is export;
+enum Expression is export <Relation Operation Symbol Value>;
+enum Language is export <Math Perl>;
+
+subset NumIn of Numeric is export;
+subset NumOut of Real:D is export;
 
