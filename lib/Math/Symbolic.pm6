@@ -927,7 +927,7 @@ method !convert_parse ($parse, $part = '') {
         for $branch.hash.keys {
             my $result = self!convert_parse($branch.hash{$_}, $_);
             if $result {
-                if $result.type {
+                if $result.type.defined {
                     @results.push: $result;
                 } elsif $result.children {
                     @results.push: $result.children.list;
@@ -998,9 +998,10 @@ method !convert_parse ($parse, $part = '') {
     }
 
     my $node;
-    if !($type || $content) && @children == 1 {
+    if !($type.defined || $content) && @children == 1 {
         $node = @children[0];
-    } elsif $type || $content || @children {
+    } elsif $type.defined || $content || @children {
+        $type //= Node;
         $node = Math::Symbolic::Tree.new(:$type, :$content, :@children);
     }
     return $node;
