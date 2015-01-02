@@ -51,7 +51,7 @@ method code ($language = 'perl6', $tree = $!tree) {
 }
 
 method routine ($positional = False, $defaults? is copy, $tree = $!tree) {
-    my @vars = $tree.find_all(:type<symbol>)».content.sort.squish;
+    my @vars = $tree.find_all(:type(Node::Symbol))».content.sort.squish;
     if defined $defaults {
         $defaults = Hash.new: @vars.map: * => $defaults
             unless $defaults ~~ Associative;
@@ -97,7 +97,7 @@ method evaluate (*%vals is copy) {
         }
     }
 
-    for $!tree.find_all: :type<symbol>, :content(%vals.keys.any) {
+    for $!tree.find_all: :type(Node::Symbol), :content(%vals.keys.any) {
         $_.set: %vals{$_.content}.clone;
     }
 
@@ -106,8 +106,8 @@ method evaluate (*%vals is copy) {
 
 # TODO need more property-based generic manipulations and per-op special cases, like *0, ^0, etc
     # but avoid adding code in the ops
-    # iow properties are good for Operations (as long as they're optional with sane defaults), but code in those properties is bad, because the point of the Operation class is to be a simple declarative way to express the language, so minimizing complexity in the public API of ::Operation is central to its intended purpose
-    # TODO BUG speaking of minimizing complexity in ::Operation, please convert the .function/.syntax/.syntaxes/BUILD mess to Roles or something soon
+    # iow properties are good for Node::Operations (as long as they're optional with sane defaults), but code in those properties is bad, because the point of the Node::Operation class is to be a simple declarative way to express the language, so minimizing complexity in the public API of ::Node::Operation is central to its intended purpose
+    # TODO BUG speaking of minimizing complexity in ::Node::Operation, please convert the .function/.syntax/.syntaxes/BUILD mess to Roles or something soon
 # this is also highly inefficient
 method simplify () {
     my $tree = $!tree;
@@ -117,33 +117,33 @@ method simplify () {
         my $node;
 
         # x^-n = 1/x^n
-        if $node = $tree.find( :type<operation>, :content('power'|'root'), :children(
+        if $node = $tree.find( :type(Node::Operation), :content('power'|'root'), :children(
             *,
-            {:type<operation>, :content<negate>}
+            {:type(Node::Operation), :content<negate>}
         ) ) {
             $node.children[1] = $node.children[1].children[0];
             $node.children[1] = $node.clone;
             $node.content = %ops<divide>;
-            $node.children[0] = Math::Symbolic::Tree.new(:type<value>, :content(1));
+            $node.children[0] = Math::Symbolic::Tree.new(:type(Node::Value), :content(1));
             $hit = True;
         }
 
         # x^-n = 1/x^n
-        elsif $node = $tree.find( :type<operation>, :content('power'|'root'), :children(
+        elsif $node = $tree.find( :type(Node::Operation), :content('power'|'root'), :children(
             *,
-            {:type<value>, :content(* < 0)}
+            {:type(Node::Value), :content(* < 0)}
         ) ) {
             $node.children[1].content *= -1;
             $node.children[1] = $node.clone;
             $node.content = %ops<divide>;
-            $node.children[0] = Math::Symbolic::Tree.new(:type<value>, :content(1));
+            $node.children[0] = Math::Symbolic::Tree.new(:type(Node::Value), :content(1));
             $hit = True;
         }
 
         # sqr
-        elsif $node = $tree.find( :type<operation>, :content<power>, :children(
+        elsif $node = $tree.find( :type(Node::Operation), :content<power>, :children(
             *,
-            {:type<value>, :content(2)}
+            {:type(Node::Value), :content(2)}
         ) ) {
             $node.content = %ops<sqr>;
             $node.children[1] :delete;
@@ -151,9 +151,9 @@ method simplify () {
         }
 
         # sqrt
-        elsif $node = $tree.find( :type<operation>, :content<root>, :children(
+        elsif $node = $tree.find( :type(Node::Operation), :content<root>, :children(
             *,
-            {:type<value>, :content(2)}
+            {:type(Node::Value), :content(2)}
         ) ) {
             $node.content = %ops<sqrt>;
             $node.children[1] :delete;
@@ -161,9 +161,9 @@ method simplify () {
         }
 
         # negate
-        elsif $node = $tree.find( :type<operation>, :content('multiply'|'divide'), :children(
+        elsif $node = $tree.find( :type(Node::Operation), :content('multiply'|'divide'), :children(
             *,
-            {:type<value>, :content(-1)}
+            {:type(Node::Value), :content(-1)}
         ) ) {
             $node.content = %ops<negate>;
             $node.children[1] :delete;
@@ -171,8 +171,8 @@ method simplify () {
         }
 
         # negate
-        elsif $node = $tree.find( :type<operation>, :content<multiply>, :children(
-            {:type<value>, :content(-1)},
+        elsif $node = $tree.find( :type(Node::Operation), :content<multiply>, :children(
+            {:type(Node::Value), :content(-1)},
             *
         ) ) {
             $node.content = %ops<negate>;
@@ -181,20 +181,20 @@ method simplify () {
         }
 
         # invert -> division
-        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
+        elsif $node = $tree.find( :type(Node::Operation), :content<invert> ) {
             $node.content = %ops<divide>;
             $node.children[1] = $node.children[0];
-            $node.children[0] = $tree.new(:type<value>, :content(1));
+            $node.children[0] = $tree.new(:type(Node::Value), :content(1));
             $hit = True;
         }
 
         # a/b/c -> a/(b*c)
-        elsif $node = $tree.find( :type<operation>, :content<divide>, :children(
-            {:type<operation>, :content<divide>},
+        elsif $node = $tree.find( :type(Node::Operation), :content<divide>, :children(
+            {:type(Node::Operation), :content<divide>},
             *
         ) ) {
             $node.content = %ops<divide>;
-            $node.children[1] = $tree.new(:type<operation>, :content(%ops<multiply>), :children(
+            $node.children[1] = $tree.new(:type(Node::Operation), :content(%ops<multiply>), :children(
                 $node.children[0].children[1],
                 $node.children[1]
             ));
@@ -203,12 +203,12 @@ method simplify () {
         }
 
         # a/(b/c) -> a*c/b
-        elsif $node = $tree.find( :type<operation>, :content<divide>, :children(
+        elsif $node = $tree.find( :type(Node::Operation), :content<divide>, :children(
             *,
-            {:type<operation>, :content<divide>}
+            {:type(Node::Operation), :content<divide>}
         ) ) {
             $node.content = %ops<divide>;
-            $node.children[0] = Math::Symbolic::Tree.new(:type<operation>, :content(%ops<multiply>), :children(
+            $node.children[0] = Math::Symbolic::Tree.new(:type(Node::Operation), :content(%ops<multiply>), :children(
                 $node.children[0],
                 $node.children[1].children[1]
             ));
@@ -217,12 +217,12 @@ method simplify () {
         }
 
         # a*(b/c) -> a*b/c
-        elsif $node = $tree.find( :type<operation>, :content<multiply>, :children(
+        elsif $node = $tree.find( :type(Node::Operation), :content<multiply>, :children(
             *,
-            {:type<operation>, :content<divide>}
+            {:type(Node::Operation), :content<divide>}
         ) ) {
             $node.content = %ops<divide>;
-            $node.children[0] = Math::Symbolic::Tree.new(:type<operation>, :content(%ops<multiply>), :children(
+            $node.children[0] = Math::Symbolic::Tree.new(:type(Node::Operation), :content(%ops<multiply>), :children(
                 $node.children[0],
                 $node.children[1].children[0]
             ));
@@ -230,7 +230,7 @@ method simplify () {
             $hit = True;
         }
 
-        elsif my @nodes = $tree.find_all( :type<operation> ) {
+        elsif my @nodes = $tree.find_all( :type(Node::Operation) ) {
             # TODO we could use a smarter pattern to not have to re-test every single op in the tree repeatedly
             # except now we're doing many things in here
             while @nodes && !$hit {
@@ -243,14 +243,14 @@ method simplify () {
                 if defined $ident {
                     my $do = False;
                     my $val = $node.children[1];
-                    $do = ($val.type eq Value && $val.content ~~ $ident);
+                    $do = ($val.type eq Node::Value && $val.content ~~ $ident);
                     my $flip = False;
                     unless $do {
                         $val = $node.children[0];
                         $do = (
                             $func.commute ~~ Bool &&
                             $func.commute &&
-                            $val.type eq Value &&
+                            $val.type eq Node::Value &&
                             $val.content ~~ $ident
                         );
                         $flip = True;
@@ -273,7 +273,7 @@ method simplify () {
                 if !$hit {
                     if $func.arity == 1 {
                         my $child = $node.children[0];
-                        if $child.type eq Operation {
+                        if $child.type eq Node::Operation {
                             my $child_op = $child.content;
                             my $child_func = $child_op.function;
                             if $child_op.arity == 1 && $func.inverse === $child_op {
@@ -296,12 +296,12 @@ method simplify () {
                                 my $child := $node.children[$i];
 
                                 my $do = False;
-                                if $child.type eq Operation &&
+                                if $child.type eq Node::Operation &&
                                     $child.content === $inv_via {
                                     $child = $child.children[0];
                                     $do = True;
                                 } elsif $inv_via eq 'negate' &&
-                                    $child.type eq Value &&
+                                    $child.type eq Node::Value &&
                                     $child.content < 0 {
                                     $child.content *= -1;
                                     $do = True;
@@ -323,10 +323,10 @@ method simplify () {
         }
 
         # invert -> division - we put this last, so that inversion is preserved for matching against inv-via
-        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
+        elsif $node = $tree.find( :type(Node::Operation), :content<invert> ) {
             $node.content = %ops<divide>;
             $node.children[1] = $node.children[0];
-            $node.children[0] = $tree.new(:type<value>, :content(1));
+            $node.children[0] = $tree.new(:type(Node::Value), :content(1));
             $hit = True;
         }
     }
@@ -336,13 +336,13 @@ method simplify () {
 
 method fold ($tree = $!tree) {
     my $hit = True;
-    while $hit && my @nodes = $tree.find_all: :type<operation> {
+    while $hit && my @nodes = $tree.find_all: :type(Node::Operation) {
         $hit = False;
         for @nodes -> $node {
             my $func = $node.content.function;
             if $func && (my &eval := $func.eval) &&
-                $node.children.all.type eq Value {
-                $node.type = Value;
+                $node.children.all.type eq Node::Value {
+                $node.type = Node::Value;
                 $node.content = eval( |@($node.children».content) );
                 $node.children = ();
                 $hit = True;
@@ -361,10 +361,10 @@ method poly ($var?, :$coef) {
 
     my $work = $tree;
 
-    if $tree.type eq Relation {
+    if $tree.type eq Node::Relation {
         my $side = 0;
         if defined $var {
-            my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
+            my @paths = $tree.find_all: :type(Node::Symbol), :content($var), :path;
             die "Error: variable '$var' not found in '$tree'" unless @paths;
 
             my %side_var := @paths»[0].Bag;
@@ -392,13 +392,13 @@ method poly ($var?, :$coef) {
         $work = $tree.children[0];
         my $opp := $tree.children[1];
 
-        my %zero = :type<value>, :content(0);
+        my %zero = :type(Node::Value), :content(0);
         unless $opp.match: |%zero {
             @($work.children) = $work.clone, $tree.new(
-                :type<operation>, :content(%ops<multiply>),
-                :children[ $tree.new(:type<value>,:content(-1)), $opp ]
+                :type(Node::Operation), :content(%ops<multiply>),
+                :children[ $tree.new(:type(Node::Value),:content(-1)), $opp ]
             );
-            $work.type = Operation;
+            $work.type = Node::Operation;
             $work.content = %ops<add>;
 
             $opp = $tree.new: |%zero;
@@ -419,11 +419,11 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
 
     my $type = $tree.type;
 
-    if $type eq Relation {
+    if $type eq Node::Relation {
         self.condense: $var, $_ for $tree.children;
     }
 
-    if $type ne Operation {
+    if $type ne Node::Operation {
         die 'Error: coefficient analysis is only available for operation nodes'
             if $coef;
         return self;
@@ -446,15 +446,15 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
     for $tree.chain {
         my $type = $_.type;
         my $content = $_.content;
-        if $type eq Symbol {
+        if $type eq Node::Symbol {
             $vars.elem($content => 1)[0]++;
-        } elsif $type eq Value {
+        } elsif $type eq Node::Value {
             if defined $n[0] {
                 $n[0] = ($func.eval)($n[0], $content);
             } else {
                 $n[0] = $content;
             }
-        } elsif $type eq Operation {
+        } elsif $type eq Node::Operation {
             if $content eq $up {
                 my %subvar_count;
                 my @subparts;
@@ -464,23 +464,23 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
                     for $_.chain -> $sub {
                         my $subtype = $sub.type;
                         my $subcontent = $sub.content;
-                        if $subtype eq Symbol {
+                        if $subtype eq Node::Symbol {
                             %subvar_count{$subcontent}++;
-                        } elsif $subtype eq Value {
+                        } elsif $subtype eq Node::Value {
                             if %subvar_count{''}:exists {
                                 %subvar_count{''} = ($subfunc.eval)(
                                     %subvar_count{''}, $subcontent );
                             } else {
                                 %subvar_count{''} = $subcontent;
                             }
-                        } elsif $upup && $subtype eq Operation && $subcontent eq $upup &&
-                            $sub.match: :children({:type<symbol>,}, {:type<value>,}) {
+                        } elsif $upup && $subtype eq Node::Operation && $subcontent eq $upup &&
+                            $sub.match: :children({:type(Node::Symbol),}, {:type(Node::Value),}) {
                             %subvar_count{$sub.children[0].content} += $sub.children[1].content;
                         } else {
                             @subparts.push: $sub;
                         }
                     }
-                } elsif $_.match: :children({:type<symbol>,}, {:type<value>,}) {
+                } elsif $_.match: :children({:type(Node::Symbol),}, {:type(Node::Value),}) {
                     %subvar_count{$_.children[0].content}++;
                     %subvar_count{''} += $_.children[1].content;
                 } else {
@@ -494,13 +494,13 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
                 if %subvar_count {
                     $elem[0] += $count;
                 } else {
-                    unshift @subparts: $tree.new: :type<value>, :content($count)
+                    unshift @subparts: $tree.new: :type(Node::Value), :content($count)
                         unless $count == $subfunc.identity;
                 }
 
                 $elem.push: $tree.new-chain: $up, @subparts if @subparts;
             } elsif $upup && $content eq $upup && $_.match:
-                :children({:type<symbol>,}, {:type<value>,}) {
+                :children({:type(Node::Symbol),}, {:type(Node::Value),}) {
                 $vars.elem($_.children[0].content => $_.children[1].content)[0] += 1;
             } else {
                 @parts.push: $_;
@@ -615,20 +615,20 @@ method normalize ($tree = $!tree) {
         my $node;
 
         # sqr -> power
-        if $node = $tree.find( :type<operation>, :content<sqr> ) {
+        if $node = $tree.find( :type(Node::Operation), :content<sqr> ) {
             $node.content = %ops<power>;
-            $node.children[1] = $tree.new( :type<value>, :content(2) );
+            $node.children[1] = $tree.new( :type(Node::Value), :content(2) );
             $hit = True;
         }
 
         # sqrt -> power
-        elsif $node = $tree.find( :type<operation>, :content<sqrt> ) {
+        elsif $node = $tree.find( :type(Node::Operation), :content<sqrt> ) {
             $node.content = %ops<power>;
-            $node.children[1] = $tree.new( :type<value>, :content(.5) );
+            $node.children[1] = $tree.new( :type(Node::Value), :content(.5) );
             $hit = True;
         }
 
-        elsif my @nodes = $tree.find_all( :type<operation> ) {
+        elsif my @nodes = $tree.find_all( :type(Node::Operation) ) {
             # TODO we could use a smarter pattern to not have to re-test every single op in the tree repeatedly
             # except now we're doing many things in here
             while @nodes && !$hit {
@@ -641,7 +641,7 @@ method normalize ($tree = $!tree) {
                 my $inv-via = $func.invert-via;
                 if !$func.normal && $func.arity == 2 && $inv && $inv.function.normal && $inv-via {
                     $node.children[1] = $tree.new(
-                        :type<operation>, :content($inv-via),
+                        :type(Node::Operation), :content($inv-via),
                         :children($node.children[1])
                     );
                     $node.content = $inv;
@@ -653,14 +653,14 @@ method normalize ($tree = $!tree) {
                 if !$hit && defined (my $ident = $func.identity) {
                     my $do = False;
                     my $val = $node.children[1];
-                    $do = ($val.type eq Value && $val.content ~~ $ident);
+                    $do = ($val.type eq Node::Value && $val.content ~~ $ident);
                     my $flip = False;
                     unless $do {
                         $val = $node.children[0];
                         $do = (
                             $func.commute ~~ Bool &&
                             $func.commute &&
-                            $val.type eq Value &&
+                            $val.type eq Node::Value &&
                             $val.content ~~ $ident
                         );
                         $flip = True;
@@ -684,16 +684,16 @@ method normalize ($tree = $!tree) {
         # these two should come last to allow the former to match inverse ops
 
         # invert -> power
-        if !$hit && ($node = $tree.find( :type<operation>, :content<invert> )) {
+        if !$hit && ($node = $tree.find( :type(Node::Operation), :content<invert> )) {
             $node.content = %ops<power>;
-            $node.children[1] = $tree.new(:type<value>, :content(-1));
+            $node.children[1] = $tree.new(:type(Node::Value), :content(-1));
             $hit = True;
         }
 
         # negate -> multiply
-        elsif $node = $tree.find( :type<operation>, :content<negate> ) {
+        elsif $node = $tree.find( :type(Node::Operation), :content<negate> ) {
             $node.content = %ops<multiply>;
-            $node.children[1] = $tree.new(:type<value>, :content(-1));
+            $node.children[1] = $tree.new(:type(Node::Value), :content(-1));
             $hit = True;
         }
     }
@@ -713,16 +713,16 @@ method expand () {
         $hit = False;
 
         for $tree.find_all(:children(
-            {:type<value>,},
-            {:type<value>,}
+            {:type(Node::Value),},
+            {:type(Node::Value),}
         )) -> $node {
             $node.content = +$node;
-            $node.type = Value;
+            $node.type = Node::Value;
             $node.children = ();
             $hit = True;
         }
 
-        for $tree.find_all(:type<operation>) -> $node {
+        for $tree.find_all(:type(Node::Operation)) -> $node {
             my $op = $node.content;
             next unless $op.arity == 2;
             next unless my $func = $op.function;
@@ -730,7 +730,7 @@ method expand () {
             my $i;
             if $node.match: :children( *,
                 {
-                    :type<value>,
+                    :type(Node::Value),
                     :content( {$_ == $_.Int and $_ > 0} )
                 }
             ) {
@@ -738,7 +738,7 @@ method expand () {
             } elsif $func.commute &&
                 $node.match: :children(
                     {
-                        :type<value>,
+                        :type(Node::Value),
                         :content( {$_ == $_.Int and $_ > 0} )
                     }, *
             ) {
@@ -751,7 +751,7 @@ method expand () {
                 my $rep = $node.children[1-$i].content - $ident;
                 next unless $rep-- > 0;
                 my $val = $child.content;
-                my $tmpl = $tree.new: :type<operation>, :content($down),
+                my $tmpl = $tree.new: :type(Node::Operation), :content($down),
                     :children($child, $child.clone);
                 my $new = $tmpl.clone;
 
@@ -769,10 +769,10 @@ method expand () {
 
             # distribution
             my $content = $down.name | $down.function.inverse.name;
-            if $node.children[0].match: :type<operation>, :$content
+            if $node.children[0].match: :type(Node::Operation), :$content
                 { $i = 0 }
             elsif $func.commute === True &&
-                $node.children[1].match: :type<operation>, :$content
+                $node.children[1].match: :type(Node::Operation), :$content
                 { $i = 1 }
             if defined $i {
                 my $child = $node.children[$i];
@@ -800,7 +800,7 @@ method isolate_quadratic ($var, $a, $b, $c, :$tree = $!tree) {
 
     my $det = $det_template.clone();
     $det.evaluate(:$a, :$b, :$c).fold;
-    my $detval = $det.tree.type eq Value ?? +$det !! Any;
+    my $detval = $det.tree.type eq Node::Value ?? +$det !! Any;
 
     my $new = $detval.defined && $detval == 0 ??
         ($quad_template_nodet //=
@@ -821,7 +821,7 @@ proto method isolate (|) {*}
 multi method isolate (Str:D $var) {
     my $tree = $!tree;
 
-    my @paths = $tree.find_all: :type<symbol>, :content($var), :path;
+    my @paths = $tree.find_all: :type(Node::Symbol), :content($var), :path;
     if @paths > 1 {
         my %coeffs = self.poly($var, :coef);
         die "Error: cannot isolate $var in '{self}': " ~
@@ -833,11 +833,11 @@ multi method isolate (Str:D $var) {
             self.isolate_quadratic($var, |%coeffs{2...0});
         } else {
             # removes extraneous x^0 before re-calling isolate for a single instance of $var
-            for $tree.find_all: :type<operation>, :content<power>, :children(
-                { :type<symbol>, :content($var) },
-                { :type<value>, :content(0) }
+            for $tree.find_all: :type(Node::Operation), :content<power>, :children(
+                { :type(Node::Symbol), :content($var) },
+                { :type(Node::Value), :content(0) }
             ) {
-                $_.set: :type<value>, :content(1), :children();
+                $_.set: :type(Node::Value), :content(1), :children();
             }
 
             self.isolate: $var;
@@ -855,7 +855,7 @@ multi method isolate (:@path) {
     my $tree = $!tree;
 
     die 'Error: can only isolate variables in relations'
-        unless $tree.type eq Relation;
+        unless $tree.type eq Node::Relation;
 
     my $i = @path.shift;
     $tree.children .= reverse if $i != 0;
@@ -865,7 +865,7 @@ multi method isolate (:@path) {
     while defined($i = @path.shift) {
         my $next = $work.children[$i];
         die 'Error: encountered non-operation parent node'
-            unless $work.type eq Operation;
+            unless $work.type eq Node::Operation;
 
         my $op = $work.content;
         my $func = $op.function;
@@ -880,7 +880,7 @@ multi method isolate (:@path) {
                     $next = $work;
                     $next.children .= reverse;
                     $next.children[0] = $tree.new(
-                        :type<operation>, :content($func.invert-via),
+                        :type(Node::Operation), :content($func.invert-via),
                         :children($next.children[0])
                     );
                     @path.unshift: 0, 0;
@@ -900,7 +900,7 @@ multi method isolate (:@path) {
             @children.push: $work.children[1] if $op.arity > 1;
 
             $new = Math::Symbolic::Tree.new(
-                type => Operation,
+                type => Node::Operation,
                 content => $invop,
                 :@children
             );
@@ -941,16 +941,16 @@ method !convert_parse ($parse, $part = '') {
 
     my ($type, $content);
     if $part eq 'equation' {
-        $type = Relation;
+        $type = Node::Relation;
         $content = '=';
     } elsif $part eq 'constant' {
-        $type = Value;
+        $type = Node::Value;
         $content = +$str;
     } elsif $part eq 'variable' {
-        $type = Symbol;
+        $type = Node::Symbol;
         $content = $str;
     } elsif $part ~~ /^infix_chain_/ {
-        $type = Operation;
+        $type = Node::Operation;
         my @ops = $parse<op>.list;
         my $node;
         while @ops {
@@ -966,7 +966,7 @@ method !convert_parse ($parse, $part = '') {
             my $syn = %syn_syn<infix>{$op};
             $children .= reverse if $syn.reverse;
             $node = Math::Symbolic::Tree.new(
-                :type<operation>,
+                :type(Node::Operation),
                 :content($op_obj),
                 :$children
             );
@@ -976,14 +976,14 @@ method !convert_parse ($parse, $part = '') {
         my $key = "$parse[0]$parse[1]";
         my $op = %syn<circumfix>{$key};
         if $op.function {
-            $type = Operation;
+            $type = Node::Operation;
             $content = $op;
         }
     } elsif $part eq 'prefix_operation' {
         my $key = $parse<prefix_operator>.Str;
         my $op = %syn<prefix>{$key};
         if $op.function {
-            $type = Operation;
+            $type = Node::Operation;
             $content = $op;
         }
     } elsif $part eq 'postfix_operation_chain' {
