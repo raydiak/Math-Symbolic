@@ -61,12 +61,12 @@ method chain (Bool :$ops = False) {
 
     die "Error: can only call .chain() on operations; this is a{
         ($type ~~ /^<[aeiou]>/ ?? 'n ' !! ' ') ~ $type
-    }" unless $type eq Node::Operation;
+    }" unless $type eqv Node::Operation;
 
     my @chain;
     @chain.push: self if $ops;
     for @.children {
-        if $_.type eq $.type && $_.content eq $.content {
+        if $_.type eqv $.type && $_.content eqv $.content {
             @chain.push: $_.chain(:$ops);
         } else {
             @chain.push: $_ unless $ops;
@@ -83,7 +83,7 @@ method count () {
 method list () {
     my @return;
 
-    if $.type eq Node::Operation &&
+    if $.type eqv Node::Operation &&
         (my $func = $.content.function) &&
         (my @vars = $func.variants) {
         for @vars {
@@ -160,7 +160,7 @@ method Str () {
             my $prec = $syn.precedence;
             for ^@args -> $child_i {
                 my $child = @.children[$child_i];
-                if $child.type eq Node::Operation {
+                if $child.type eqv Node::Operation {
                     my $this_op = $child.content;
                     my $this_syn = $this_op.syntax;
                     my $this_prec = $this_syn.precedence;
