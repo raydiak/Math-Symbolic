@@ -1,5 +1,6 @@
 class Math::Symbolic::Language;
 
+# think about dependency injection
 # ::Language (ops/syntax)
     # basically a collection of ::Operations and APIs thereto
     # if all syn and ops are just ::Operations, do we need a whole namespace for ::Language?
