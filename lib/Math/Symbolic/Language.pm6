@@ -1,5 +1,6 @@
 class Math::Symbolic::Language;
 
+# should be instances, singletons are bad
 # think about dependency injection
 # ::Language (ops/syntax)
     # basically a collection of ::Operations and APIs thereto
