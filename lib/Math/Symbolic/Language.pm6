@@ -42,9 +42,9 @@ my @operations = (
         :name<add>,
         :function{
             :eval( &infix:<+> ),
-            :up<multiply>,
-            :inverse<subtract>,
-            :invert-via<negate>,
+            :up<mul>,
+            :inverse<sub>,
+            :invert-via<neg>,
             :identity(0),
             :commute,
             :associative,
@@ -64,11 +64,11 @@ my @operations = (
         ),
     ),
     Op(
-        :name<subtract>,
+        :name<sub>,
         :function{
             :eval( &infix:<-> ),
             :inverse<add>,
-            :invert-via<negate>,
+            :invert-via<neg>,
             :identity(0)
         },
         :syntaxes(
@@ -85,13 +85,13 @@ my @operations = (
         ),
     ),
     Op(
-        :name<multiply>,
+        :name<mul>,
         :function{
             :eval( &infix:<*> ),
             :up<power>,
             :down<add>,
-            :inverse<divide>,
-            :invert-via<invert>,
+            :inverse<div>,
+            :invert-via<inv>,
             :identity(1),
             :commute,
             :associative,
@@ -111,11 +111,11 @@ my @operations = (
         ),
     ),
     Op(
-        :name<divide>,
+        :name<div>,
         :function{
             :eval( &infix:</> ),
-            :inverse<multiply>,
-            :invert-via<invert>,
+            :inverse<mul>,
+            :invert-via<inv>,
             :identity(1)
         },
         :syntaxes(
@@ -135,9 +135,9 @@ my @operations = (
         :name<power>,
         :function{
             :eval( &infix:<**> ),
-            :down<multiply>,
+            :down<mul>,
             :inverse<root>,
-            :invert-via<invert>,
+            :invert-via<inv>,
             :identity(1),
             :normal
         },
@@ -159,7 +159,7 @@ my @operations = (
         :function{
             :eval( * ** (1/*) ),
             :inverse<power>,
-            :invert-via<invert>,
+            :invert-via<inv>,
             :identity(1)
         },
         :syntaxes(
@@ -223,16 +223,16 @@ my @operations = (
         ),
     ),
     Op(
-        :name<factorial>,
+        :name<fact>,
         :syntax{
             :type<postfix>,
             :parts< ! >
         }
     ),
     Op(
-        :name<absolute>,
+        :name<abs>,
         :function{
-            :eval( *.abs )
+            :eval( &abs )
         },
         :syntaxes(
             {
@@ -247,10 +247,10 @@ my @operations = (
         ),
     ),
     Op(
-        :name<negate>,
+        :name<neg>,
         :function{
             :eval( &prefix:<-> ),
-            :inverse<negate>
+            :inverse<neg>
         },
         :syntaxes(
             {
@@ -265,10 +265,10 @@ my @operations = (
         ),
     ),
     Op(
-        :name<invert>,
+        :name<inv>,
         :function{
             :eval( * ** -1 ),
-            :inverse<invert>
+            :inverse<inv>
         },
         :syntaxes(
             {
@@ -283,10 +283,10 @@ my @operations = (
         ),
     ),
     Op(
-        :name<addsubtract>,
+        :name<addsub>,
         :function{
             :identity(0),
-            :variants(<add subtract>)
+            :variants(<add sub>)
         },
         :syntax{
             :type<infix>,

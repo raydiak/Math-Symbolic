@@ -118,11 +118,11 @@ method simplify () {
         # x^-n = 1/x^n
         if $node = $tree.find( :type<operation>, :content('power'|'root'), :children(
             *,
-            {:type<operation>, :content<negate>}
+            {:type<operation>, :content<neg>}
         ) ) {
             $node.children[1] = $node.children[1].children[0];
             $node.children[1] = $node.clone;
-            $node.content = %ops<divide>;
+            $node.content = %ops<div>;
             $node.children[0] = Math::Symbolic::Tree.new(:type<value>, :content(1));
             $hit = True;
         }
@@ -134,7 +134,7 @@ method simplify () {
         ) ) {
             $node.children[1].content *= -1;
             $node.children[1] = $node.clone;
-            $node.content = %ops<divide>;
+            $node.content = %ops<div>;
             $node.children[0] = Math::Symbolic::Tree.new(:type<value>, :content(1));
             $hit = True;
         }
@@ -159,41 +159,41 @@ method simplify () {
             $hit = True;
         }
 
-        # negate
-        elsif $node = $tree.find( :type<operation>, :content('multiply'|'divide'), :children(
+        # neg
+        elsif $node = $tree.find( :type<operation>, :content('mul'|'div'), :children(
             *,
             {:type<value>, :content(-1)}
         ) ) {
-            $node.content = %ops<negate>;
+            $node.content = %ops<neg>;
             $node.children[1] :delete;
             $hit = True;
         }
 
-        # negate
-        elsif $node = $tree.find( :type<operation>, :content<multiply>, :children(
+        # neg
+        elsif $node = $tree.find( :type<operation>, :content<mul>, :children(
             {:type<value>, :content(-1)},
             *
         ) ) {
-            $node.content = %ops<negate>;
+            $node.content = %ops<neg>;
             $node.children[0] = $node.children[1]:delete;
             $hit = True;
         }
 
         # invert -> division
-        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
-            $node.content = %ops<divide>;
+        elsif $node = $tree.find( :type<operation>, :content<inv> ) {
+            $node.content = %ops<div>;
             $node.children[1] = $node.children[0];
             $node.children[0] = $tree.new(:type<value>, :content(1));
             $hit = True;
         }
 
         # a/b/c -> a/(b*c)
-        elsif $node = $tree.find( :type<operation>, :content<divide>, :children(
-            {:type<operation>, :content<divide>},
+        elsif $node = $tree.find( :type<operation>, :content<div>, :children(
+            {:type<operation>, :content<div>},
             *
         ) ) {
-            $node.content = %ops<divide>;
-            $node.children[1] = $tree.new(:type<operation>, :content(%ops<multiply>), :children(
+            $node.content = %ops<div>;
+            $node.children[1] = $tree.new(:type<operation>, :content(%ops<mul>), :children(
                 $node.children[0].children[1],
                 $node.children[1]
             ));
@@ -202,12 +202,12 @@ method simplify () {
         }
 
         # a/(b/c) -> a*c/b
-        elsif $node = $tree.find( :type<operation>, :content<divide>, :children(
+        elsif $node = $tree.find( :type<operation>, :content<div>, :children(
             *,
-            {:type<operation>, :content<divide>}
+            {:type<operation>, :content<div>}
         ) ) {
-            $node.content = %ops<divide>;
-            $node.children[0] = Math::Symbolic::Tree.new(:type<operation>, :content(%ops<multiply>), :children(
+            $node.content = %ops<div>;
+            $node.children[0] = Math::Symbolic::Tree.new(:type<operation>, :content(%ops<mul>), :children(
                 $node.children[0],
                 $node.children[1].children[1]
             ));
@@ -216,12 +216,12 @@ method simplify () {
         }
 
         # a*(b/c) -> a*b/c
-        elsif $node = $tree.find( :type<operation>, :content<multiply>, :children(
+        elsif $node = $tree.find( :type<operation>, :content<mul>, :children(
             *,
-            {:type<operation>, :content<divide>}
+            {:type<operation>, :content<div>}
         ) ) {
-            $node.content = %ops<divide>;
-            $node.children[0] = Math::Symbolic::Tree.new(:type<operation>, :content(%ops<multiply>), :children(
+            $node.content = %ops<div>;
+            $node.children[0] = Math::Symbolic::Tree.new(:type<operation>, :content(%ops<mul>), :children(
                 $node.children[0],
                 $node.children[1].children[0]
             ));
@@ -299,7 +299,7 @@ method simplify () {
                                     $child.content === $inv_via {
                                     $child = $child.children[0];
                                     $do = True;
-                                } elsif $inv_via eq 'negate' &&
+                                } elsif $inv_via eq 'neg' &&
                                     $child.type eq 'value' &&
                                     $child.content < 0 {
                                     $child.content *= -1;
@@ -322,8 +322,8 @@ method simplify () {
         }
 
         # invert -> division - we put this last, so that inversion is preserved for matching against inv-via
-        elsif $node = $tree.find( :type<operation>, :content<invert> ) {
-            $node.content = %ops<divide>;
+        elsif $node = $tree.find( :type<operation>, :content<inv> ) {
+            $node.content = %ops<div>;
             $node.children[1] = $node.children[0];
             $node.children[0] = $tree.new(:type<value>, :content(1));
             $hit = True;
@@ -394,7 +394,7 @@ method poly ($var?, :$coef) {
         my %zero = :type<value>, :content(0);
         unless $opp.match: |%zero {
             @($work.children) = $work.clone, $tree.new(
-                :type<operation>, :content(%ops<multiply>),
+                :type<operation>, :content(%ops<mul>),
                 :children[ $tree.new(:type<value>,:content(-1)), $opp ]
             );
             $work.type = 'operation';
@@ -683,15 +683,15 @@ method normalize ($tree = $!tree) {
         # these two should come last to allow the former to match inverse ops
 
         # invert -> power
-        if !$hit && ($node = $tree.find( :type<operation>, :content<invert> )) {
+        if !$hit && ($node = $tree.find( :type<operation>, :content<inv> )) {
             $node.content = %ops<power>;
             $node.children[1] = $tree.new(:type<value>, :content(-1));
             $hit = True;
         }
 
-        # negate -> multiply
-        elsif $node = $tree.find( :type<operation>, :content<negate> ) {
-            $node.content = %ops<multiply>;
+        # neg -> mul
+        elsif $node = $tree.find( :type<operation>, :content<neg> ) {
+            $node.content = %ops<mul>;
             $node.children[1] = $tree.new(:type<value>, :content(-1));
             $hit = True;
         }
@@ -1079,7 +1079,7 @@ Each subsequent positive op is a repetition of the op directly below it. However
 
 A positive op with an integer second argument is equal to the op 1 level down iterated that many times on its own identity value, given the original first arg as the second.
 
-An op with a negative second arg is equal to the negative op 1 level down with it's first arg set to its own identity value, and the second arg set to the original op with a negated (positive) second arg.
+An op with a negative second arg is equal to the negative op 1 level down with it's first arg set to its own identity value, and the second arg set to the original op with a negd (positive) second arg.
 
 ]]]
 
