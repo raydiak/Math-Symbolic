@@ -323,6 +323,16 @@ for @operations {
     if !(my $comm := $func.commute) && $func.invert-via && (my $inv = $func.inverse) {
         $comm = 'inverse' if $inv.function.commute === True;
     }
+
+    next unless $func.arity == 1;
+    my $name = $_.name;
+    my @syn := $_.syntaxes;
+    @syn.push( Math::Symbolic::Syntax.new:
+        :$name,
+        :arity(1),
+        :type<circumfix>,
+        :parts( "$name\(", ')' )
+    );
 }
 
 #my %by_syntax = build_by_syntax();
