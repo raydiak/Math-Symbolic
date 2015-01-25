@@ -300,6 +300,48 @@ my @operations = (
             :parts< ( ) >
         }
     ),
+    Op(
+        :name<sin>,
+        :function{
+            :eval( &sin ),
+            :inverse<asin>
+        },
+    ),
+    Op(
+        :name<asin>,
+        :function{
+            :eval( &asin ),
+            :inverse<sin>
+        },
+    ),
+    Op(
+        :name<cos>,
+        :function{
+            :eval( &cos ),
+            :inverse<acos>
+        },
+    ),
+    Op(
+        :name<acos>,
+        :function{
+            :eval( &acos ),
+            :inverse<cos>
+        },
+    ),
+    Op(
+        :name<tan>,
+        :function{
+            :eval( &tan ),
+            :inverse<atan>
+        },
+    ),
+    Op(
+        :name<atan>,
+        :function{
+            :eval( &atan ),
+            :inverse<tan>
+        },
+    ),
 );
 
 our @.operations := @operations;
