@@ -37,7 +37,7 @@ use Math::Symbolic::Operation;
 
 sub Op (|args) { Math::Symbolic::Operation.new(|args) }
 
-my @operations = (
+my @operations = BEGIN (
     Op(
         :name<add>,
         :function{
