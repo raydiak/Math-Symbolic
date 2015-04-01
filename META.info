@@ -4,5 +4,14 @@
     "description" : "Symbolic math for Perl 6",
     "author" : "raydiak",
     "depends" : [ ],
+    "provides" : {
+        "Math::Symbolic"            : "lib/Math/Symbolic.pm6",
+        "Math::Symbolic::Constants" : "lib/Math/Symbolic/Constants.pm6",
+        "Math::Symbolic::Grammar"   : "lib/Math/Symbolic/Grammar.pm6",
+        "Math::Symbolic::Language"  : "lib/Math/Symbolic/Language.pm6",
+        "Math::Symbolic::Operation" : "lib/Math/Symbolic/Operation.pm6",
+        "Math::Symbolic::Tree"      : "lib/Math/Symbolic/Tree.pm6",
+        "MultiHash"                 : "lib/MultiHash.pm6"
+    },
     "source-url" : "git://github.com/raydiak/Math-Symbolic.git"
 }
