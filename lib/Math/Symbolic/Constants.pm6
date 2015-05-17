@@ -1,4 +1,4 @@
-module Math::Symbolic::Constants;
+unit module Math::Symbolic::Constants;
 
 # is this just another node type?
 #enum Representation is export <Tree Matrix>;

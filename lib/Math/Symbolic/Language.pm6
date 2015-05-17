@@ -1,4 +1,4 @@
-class Math::Symbolic::Language;
+unit class Math::Symbolic::Language;
 
 # should be instances, singletons are bad
 # think about dependency injection

@@ -1,4 +1,4 @@
-grammar Math::Symbolic::Grammar;
+unit grammar Math::Symbolic::Grammar;
 
 #use Grammar::Debugger;
 

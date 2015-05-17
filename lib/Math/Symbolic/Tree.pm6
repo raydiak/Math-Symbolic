@@ -1,4 +1,4 @@
-class Math::Symbolic::Tree is rw;
+unit class Math::Symbolic::Tree is rw;
 
 has $.type;
 has $.content;

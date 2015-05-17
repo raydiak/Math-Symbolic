@@ -1,4 +1,4 @@
-class Math::Symbolic;
+unit class Math::Symbolic;
 
 use Math::Symbolic::Tree;
 use Math::Symbolic::Grammar;
