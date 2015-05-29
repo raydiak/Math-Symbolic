@@ -11,7 +11,7 @@
         "Math::Symbolic::Language"  : "lib/Math/Symbolic/Language.pm6",
         "Math::Symbolic::Operation" : "lib/Math/Symbolic/Operation.pm6",
         "Math::Symbolic::Tree"      : "lib/Math/Symbolic/Tree.pm6",
-        "MultiHash"                 : "lib/MultiHash.pm6"
+        "Math::Symbolic::MultiHash" : "lib/Math/Symbolic/MultiHash.pm6"
     },
     "source-url" : "git://github.com/raydiak/Math-Symbolic.git"
 }

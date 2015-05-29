@@ -1,4 +1,4 @@
-unit class MultiHash is rw;
+unit class Math::Symbolic::MultiHash is rw;
 
 # this is a hash keyed by hash with eqv semantics and extra lookup methods
 # it is used internally in math::symbolic for polynomials

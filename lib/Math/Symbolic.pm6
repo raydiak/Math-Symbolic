@@ -412,7 +412,7 @@ method poly ($var?, :$coef) {
 }
 
 method condense ($var?, $tree = $!tree, :$coef = False) {
-    use MultiHash;
+    use Math::Symbolic::MultiHash;
 
     # self.normalize: $tree;
 
@@ -440,7 +440,7 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
 
     my @parts;
     my $upup = $up.function.up;
-    my $vars = MultiHash.new;
+    my $vars = Math::Symbolic::MultiHash.new;
     my $n := $vars.elem();
     for $tree.chain {
         my $type = $_.type;
