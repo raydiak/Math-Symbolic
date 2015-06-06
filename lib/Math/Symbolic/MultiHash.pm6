@@ -13,11 +13,13 @@ method elem (*@pairs, *%keyhash is copy) is rw {
     my $found_key;
     my %key;
 
-    for %!hash.keys {
-        if %$_ eqv %keyhash {
-            %key := $_;
-            $found_key = True;
-            last;
+    if %!hash { # TODO reduce & report
+        for %!hash.keys {
+            if %$_ eqv %keyhash {
+                %key := $_;
+                $found_key = True;
+                last;
+            }
         }
     }
 

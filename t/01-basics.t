@@ -5,7 +5,7 @@ plan 11;
 
 use Math::Symbolic;
 
-isa_ok Math::Symbolic.new('0'), Math::Symbolic, ".new() works";
+isa-ok Math::Symbolic.new('0'), Math::Symbolic, ".new() works";
 
 is Math::Symbolic.new('x+y=1').isolate('x').Str, 'x=1-y', '.isolate() works';
 

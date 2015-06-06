@@ -5,10 +5,9 @@ has $.content;
 has @.children;
 
 method match (*%s) {
-    CATCH {die "Error in match: $_\nMatch: {%s.perl}"};
+    CATCH {die "Error in match '%s.perl()':\n$_.Str.indent(4)"};
 
-    for %s.keys {
-        next if $_ eq 'children';
+    for <type content>.grep({%s{$_}:exists}) {
         my $criteria = %s{$_};
         my $value = self."$_"();
         return False unless $value ~~ $criteria;
