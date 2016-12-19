@@ -1,4 +1,5 @@
 {
+    "perl" : "6.*",
     "name" : "Math::Symbolic",
     "version" : "*",
     "description" : "Symbolic math for Perl 6",
