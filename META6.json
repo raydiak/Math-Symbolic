@@ -1,6 +1,7 @@
 {
     "perl" : "6.*",
     "name" : "Math::Symbolic",
+    "license" : "Artistic-2.0",
     "version" : "*",
     "description" : "Symbolic math for Perl 6",
     "author" : "raydiak",
