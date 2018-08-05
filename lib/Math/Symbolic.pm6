@@ -82,6 +82,7 @@ method routine ($positional = False, $defaults? is copy, $tree = $!tree) {
 }
 
 method compile (|args) {
+    use MONKEY-SEE-NO-EVAL;
     EVAL self.routine(|args);
 }
 
