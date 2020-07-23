@@ -4,6 +4,12 @@ has $.type;
 has $.content;
 has @.children;
 
+submethod BUILD (:$!type, :$!content, :@children) {
+    for @children.kv -> $i, $v {
+        @!children[$i] = $v;
+    }
+}
+
 method match (*%s) {
     CATCH {die "Error in match '%s.perl()':\n$_.Str.indent(4)"};
 
@@ -47,7 +53,7 @@ method find_all (Bool :$path = False, *%s) {
     for @.children.kv -> $i, $child {
         next unless my @child_results = $child.find_all(:$path, |%s);
         @child_results».unshift: $i if $path;
-        @results.push: @child_results;
+        @results.append: @child_results;
     }
 
     return @results;
@@ -64,7 +70,7 @@ method chain (Bool :$ops = False) {
     @chain.push: self if $ops;
     for @.children {
         if $_.type eq $.type && $_.content eq $.content {
-            @chain.push: $_.chain(:$ops);
+            @chain.append: $_.chain(:$ops);
         } else {
             @chain.push: $_ unless $ops;
         }
@@ -83,7 +89,7 @@ method list () {
     if $.type eq 'operation' &&
         (my $func = $.content.function) &&
         (my @vars = $func.variants) {
-        for @vars {
+        for @vars.List.flat {
             my $var = self.clone;
             $var.content = $_;
             push @return, $var;
@@ -98,7 +104,7 @@ method list () {
             my @orig_vars = @return;
             @return = ();
             for @vars -> $var {
-                push @return, @orig_vars.map({my $o = $_.clone; $o.child($i) = $var; $o});
+                @return.append: @orig_vars.map({my $o = $_.clone; $o.child($i) = $var; $o});
             }
         }
     }
@@ -276,7 +282,7 @@ method new-sym ($sym, *%args is copy) {
 method new-op ($op, *@children, *%args is copy) {
     %args<type> = 'operation';
     %args<content> = $op;
-    %args<children>.push: @children if @children;
+    %args<children>.append: @children if @children;
 
     self.new: |%args;
 }

@@ -34,9 +34,7 @@ is
 
 is
     Math::Symbolic.new('t²=x²').evaluate(:x<V*t+P>)\
-        #.evaluate(:V(2), :P(-3)).expression('t').list».Numeric.sort,
-        .expression('t').list».compile(<P V>)».(-3, 2).sort, # precomp bug workaround
+        .evaluate(:V(2), :P(-3)).expression('t').list».Numeric.sort,
     "1 3",
     'quadratic solution to the leading problem in 1D seems correct';
 
-done;

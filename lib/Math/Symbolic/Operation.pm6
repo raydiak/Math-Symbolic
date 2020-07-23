@@ -124,10 +124,12 @@ class Math::Symbolic::Operation {
 
         if @syntaxes {
             for @syntaxes {
-                @!syntaxes.push: Math::Symbolic::Syntax.new(|%$_, :$!name, :$!arity);
+                my @parts = slip($_<parts>:delete);
+                @!syntaxes.push: Math::Symbolic::Syntax.new(|%$_, :@parts, :$!name, :$!arity);
             }
         } elsif %syntax {
-            @!syntaxes[0] = Math::Symbolic::Syntax.new(|%syntax, :$!name, :$!arity);
+            my @parts = slip(%syntax<parts>:delete);
+            @!syntaxes[0] = Math::Symbolic::Syntax.new(|%syntax, :@parts, :$!name, :$!arity);
         }
     }
 }

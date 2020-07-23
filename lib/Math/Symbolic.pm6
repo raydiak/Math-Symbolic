@@ -1,8 +1,9 @@
 unit class Math::Symbolic;
 
 use Math::Symbolic::Tree;
-use Math::Symbolic::Grammar;
 use Math::Symbolic::Language;
+use Math::Symbolic::Grammar;
+use Math::Symbolic::Actions;
 
 my %ops := Math::Symbolic::Language.by_name;
 my %syn := Math::Symbolic::Language.by_syntax;
@@ -11,15 +12,10 @@ my %syn_syn := Math::Symbolic::Language.syntax_by_syntax;
 has $.tree handles <Numeric Str count>;
 
 multi method new ($in, *%args is copy) {
+    %args<tree> = Math::Symbolic::Grammar.parse(~$in, actions => Math::Symbolic::Actions).made;
+    die 'Parse failure: invalid expression' unless %args<tree>;
 
-    my $parse = Math::Symbolic::Grammar.parse(~$in);
-
-    die 'Parse failure: invalid expression' unless $parse;
-
-    %args<tree> = self!convert_parse($parse);
-    my $obj = self.bless: |%args;
-
-    $obj;
+    self.bless: |%args;
 }
 
 method clone () {
@@ -82,6 +78,7 @@ method routine ($positional = False, $defaults? is copy, $tree = $!tree) {
 }
 
 method compile (|args) {
+    use MONKEY-SEE-NO-EVAL;
     EVAL self.routine(|args);
 }
 
@@ -511,12 +508,12 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
 
     if @parts {
         $n.push: 1 unless @$n;
-        $n.push: @parts;
+        $n.append: @parts;
     }
 
     $vars.hash .= grep: { my $v := .value; $v[0] || $v.elems > 1 };
 
-    self.condense: Any, $_ for $vars.values».grep: Math::Symbolic::Tree;
+    self.condense: Any, $_ for $vars.values».grep(Math::Symbolic::Tree).List.flat;
 
     if $var {
         my $newvars = $vars.new;
@@ -525,14 +522,14 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
             my $power = $keyhash{$var} :delete // 0;
             my @subparts;
             if $upup {
-                push @subparts: $keyhash.map: {
+                @subparts.append: $keyhash.map: {
                     .value == $upup.function.identity ?? $tree.new-sym(.key) !!
                     $tree.new-op($upup, $tree.new-sym(.key), $tree.new-val(.value))
                 };
             } else {
-                push @subparts: $keyhash.map: -> $p {
+                @subparts.append: $keyhash.map: -> $p {
                     my @sub;
-                    push @sub: $tree.new-sym($p.key) for ^($p.value);
+                    @sub.push: $tree.new-sym($p.key) for ^($p.value);
                     @sub;
                 };
             }
@@ -540,7 +537,7 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
             my $co = @$vals.shift;
             unshift @subparts: $tree.new-val: $co;# if $co != $up.function.identity;
             $elem.push: $tree.new-chain: $up, @subparts if @subparts;
-            $elem.push: @$vals;
+            $elem.append: @$vals;
         }
 
         $vars := $newvars;
@@ -582,7 +579,7 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
 
         @subparts.push: $tree.new-chain: $op, @$vals if @$vals;
 
-        @new_parts.push: ($vals = $tree.new-chain: $up, @subparts);
+        @new_parts.append: ($vals = $tree.new-chain: $up, @subparts);
     }
 
     $tree.set: $tree.new-chain($op, @new_parts);
@@ -641,7 +638,7 @@ method normalize ($tree = $!tree) {
                 if !$func.normal && $func.arity == 2 && $inv && $inv.function.normal && $inv-via {
                     $node.children[1] = $tree.new(
                         :type<operation>, :content($inv-via),
-                        :children($node.children[1])
+                        :children[$node.children[1]]
                     );
                     $node.content = $inv;
 
@@ -912,97 +909,6 @@ multi method isolate (:@path) {
     }
 
     self;
-}
-
-# TODO this whole thing is done much more concisely by grammar actions...learn about those
-method !convert_parse ($parse, $part = '') {
-    my $is_array = !($parse ~~ Match);
-    my $str = $parse.Str;
-    $str = (@$parse».Str).join: ', ' if $is_array;
-    my @branches = $parse;
-    @branches = @$parse unless $parse ~~ Match;
-    my @results;
-    for @branches -> $branch {
-        for $branch.hash.keys {
-            my $result = self!convert_parse($branch.hash{$_}, $_);
-            if $result {
-                if $result.type {
-                    @results.push: $result;
-                } elsif $result.children {
-                    @results.push: $result.children.list;
-                }
-            }
-        }
-    }
-
-    my @children;
-    @children = @results if @results;
-
-    my ($type, $content);
-    if $part eq 'equation' {
-        $type = 'relation';
-        $content = '=';
-    } elsif $part eq 'constant' {
-        $type = 'value';
-        $content = +$str;
-    } elsif $part eq 'variable' {
-        $type = 'symbol';
-        $content = $str;
-    } elsif $part ~~ /^infix_chain_/ {
-        $type = 'operation';
-        my @ops = $parse<op>.list;
-        my $node;
-        while @ops {
-            my $op = @ops.shift;
-            my $term = @children.shift;
-            my $children;
-            if $node {
-                $children = [$node, $term];
-            } else {
-                $children = [$term, @children.shift];
-            }
-            my $op_obj = %syn<infix>{$op};
-            my $syn = %syn_syn<infix>{$op};
-            $children .= reverse if $syn.reverse;
-            $node = Math::Symbolic::Tree.new(
-                :type<operation>,
-                :content($op_obj),
-                :$children
-            );
-        }
-        return $node;
-    } elsif $part eq 'circumfix_operation' {
-        my $key = "$parse[0]$parse[1]";
-        my $op = %syn<circumfix>{$key};
-        if $op.function {
-            $type = 'operation';
-            $content = $op;
-        }
-    } elsif $part eq 'prefix_operation' {
-        my $key = $parse<prefix_operator>.Str;
-        my $op = %syn<prefix>{$key};
-        if $op.function {
-            $type = 'operation';
-            $content = $op;
-        }
-    } elsif $part eq 'postfix_operation_chain' {
-        my @keys = $parse<postfix_operator>.list».Str;
-        my $node;
-        while @keys {
-            my $op = %syn<postfix>{@keys.shift};
-            $node = Math::Symbolic::Tree.new-op: $op, $node // @children.shift
-                if $op.function;
-        }
-        return $node;
-    }
-
-    my $node;
-    if !($type || $content) && @children == 1 {
-        $node = @children[0];
-    } elsif $type || $content || @children {
-        $node = Math::Symbolic::Tree.new(:$type, :$content, :@children);
-    }
-    return $node;
 }
 
 method !dump_parse ($tree, $level = 0, $anno is copy = '') {

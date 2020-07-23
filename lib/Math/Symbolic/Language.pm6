@@ -353,13 +353,19 @@ for @operations {
     my $func = $_.function;
     next unless $func;
 
-    for <inverse invert-via up down variants> -> $prop {
+    for <inverse invert-via up down> -> $prop {
         for $func."$prop"() <-> $val {
             next unless $val && $val ~~ Str;
             my $op = %by_name{$val};
             die "Cannot find '$val' operation" unless $op;
             $val = $op;
         }
+    }
+
+    for $func.variants.List.flat.kv -> $i, $var {
+        my $op = %by_name{$var};
+        die "Cannot find '$var' operation" unless $op;
+        $func.variants[$i] = $op;
     }
 
     if !(my $comm := $func.commute) && $func.invert-via && (my $inv = $func.inverse) {

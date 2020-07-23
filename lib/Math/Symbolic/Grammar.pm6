@@ -38,10 +38,15 @@ for Math::Symbolic::Language.operations.grep({.syntaxes}) -> $op {
     }
 }
 my @prec = %in.keys.sort: +*;
-my %circ = @circ».parts;
+# TODO fix this listy mess
+my %circ;
+for @circ {
+    my @parts := .parts;
+    %circ{@parts[0]} = @parts[1];
+}
 
 my %syn = %(
-    in => $%(%in{*}.map({@$_}).map: {.key => $_}),
+    in => $%(%in{*}.map({@$_}).flat.map: {.key => $_}),
     circ => $%(@circ.map: {.key => $_}),
     pre => $%(@pre.map: {.key => $_}),
     post => $%(@post.map: {.key => $_})
@@ -124,7 +129,7 @@ my $pre_ops = '[' ~ @(@pre».parts»[0]).map("'" ~ * ~ "'").join('|') ~ ']';
 token prefix_operator { <$pre_ops> }
 
 rule postfix_operation_chain {
-    <.ws> <before .* <postfix_operator> >
+    <.ws> <before .* <.postfix_operator> >
     <postfix_term><postfix_operator>+
 }
 my $post_ops = '[' ~ @(@post».parts»[0]).map("'" ~ * ~ "'").join('|') ~ ']';
