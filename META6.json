@@ -8,6 +8,7 @@
     "depends" : [ ],
     "provides" : {
         "Math::Symbolic"            : "lib/Math/Symbolic.pm6",
+        "Math::Symbolic::Actions"   : "lib/Math/Symbolic/Actions.rakumod",
         "Math::Symbolic::Constants" : "lib/Math/Symbolic/Constants.pm6",
         "Math::Symbolic::Grammar"   : "lib/Math/Symbolic/Grammar.pm6",
         "Math::Symbolic::Language"  : "lib/Math/Symbolic/Language.pm6",
