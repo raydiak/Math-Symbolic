@@ -535,7 +535,11 @@ method condense ($var?, $tree = $!tree, :$coef = False) {
             }
             my $elem := $newvars.elem($var => $power);
             my $co = @$vals.shift;
-            unshift @subparts: $tree.new-val: $co;# if $co != $up.function.identity;
+            if ($co ~~ Math::Symbolic::Tree) {
+                unshift @subparts: $co.clone;
+            } else {
+                unshift @subparts: $tree.new-val: $co;# if $co != $up.function.identity;
+            }
             $elem.push: $tree.new-chain: $up, @subparts if @subparts;
             $elem.append: @$vals;
         }
