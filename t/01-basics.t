@@ -30,7 +30,7 @@ is
     Math::Symbolic.new('a²+b²=c²').expression('c')\
         .evaluate(:a<x2-x1>, :b<y2-y1>).compile(<x1 y1 x2 y2>).( -1,-1, 2,3 ),
     5,
-    'can convert Pythagorean theorem into Perl distance subroutine';
+    'can convert Pythagorean theorem into Raku distance subroutine';
 
 is
     Math::Symbolic.new('t²=x²').evaluate(:x<V*t+P>)\

@@ -24,16 +24,16 @@ class Math::Symbolic::Function {
 
     method Str () { $.name }
 
-    multi method perl(::CLASS:D:) {
+    multi method raku(::CLASS:D:) {
         my @attrs;
         for self.^attributes().grep: { .has_accessor } -> $attr {
             my $name := $attr.Str.substr(2);
 
             my $value = self."$name"();
             if $value ~~ Math::Symbolic::Operation && $value.defined && (my $op_name := $value.name) {
-                $value = "Math::Symbolic::Language.by_name\{{$op_name.perl}}";
+                $value = "Math::Symbolic::Language.by_name\{{$op_name.raku}}";
             } else {
-                $value = $value.perl;
+                $value = $value.raku;
             }
 
             @attrs.push: "$name => $value";

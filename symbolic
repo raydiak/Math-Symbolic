@@ -2,5 +2,5 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-time perl6 -I$DIR/lib $DIR/bin/symbolic "$@"
+time raku -I$DIR/lib $DIR/bin/symbolic "$@"
 

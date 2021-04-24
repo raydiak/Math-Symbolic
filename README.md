@@ -1,6 +1,6 @@
 # Math::Symbolic
 
-This is a Perl 6 symbolic math module. It parses, manipulates, evaluates, and
+This is a Raku symbolic math module. It parses, manipulates, evaluates, and
 outputs mathematical expressions and relations. This module is PRE-ALPHA
 quality.
 
@@ -14,7 +14,7 @@ on the command line, or
     
     say Math::Symbolic.new("y=m*x+b").isolate("x").evaluate(:m(1), :b(0));
 
-in Perl 6 code, will print
+in Raku code, will print
 
     x=y
 
@@ -121,12 +121,12 @@ transformations, no changes are made to the original object.
 
 #### .compile($positional = False, $defaults?)
 
-Returns a Perl subroutine which is mathematically equivalent to the
+Returns a Raku subroutine which is mathematically equivalent to the
 Math::Symbolic expression. Not all operations are currently supported.
 Compiling relations is also undefined behavior at this time.
 
 All arguments are named by default. If $positional is True, all arguments are
-positional instead, sorted in default Perl sort order. If $positional is itself
+positional instead, sorted in default Raku sort order. If $positional is itself
 a Positional class then only the listed variables will be taken positionally,
 in the specified order.
 
@@ -155,7 +155,7 @@ string instead, and perhaps be renamed.
 #### .Str()
 
 Returns the expression re-assembled into a string by the same syntactic
-constructs which govern parsing. As with all Perl 6 objects, this is also the
+constructs which govern parsing. As with all Raku objects, this is also the
 method which gets called when the object is coerced to a string by other means,
 e.g. interpolation, context, or the ~ prefix. The .gist() method is also
 handled by this routine, for easy printing of a readable result.
@@ -163,7 +163,7 @@ handled by this routine, for easy printing of a readable result.
 Passing the result of .Str() back in to .new() should always yield a
 mathematically equivalent structure (exact representation may vary by some
 auto-simplification), giving the same type of round-trip characteristics to
-expressions that .perl() and EVAL() provide for Perl 6 objects. This allows a
+expressions that .raku() and EVAL() provide for Raku objects. This allows a
 user to, for instance, isolate a variable in an equation, then plug the result
 in to .evaluate() for that variable in a different equation, all with the
 simplicity of strings; no additional classes or APIs for the user to worry
@@ -173,7 +173,7 @@ about (albeit at a steep performance penalty).
 
 Returns the expression coerced first to a string (see above), then to a number.
 This will fail if the expression hasn't already been evaluated/simplified (see
-further above) to a single constant value. As with all Perl 6 objects, this is
+further above) to a single constant value. As with all Raku objects, this is
 also the method which gets called when the object is coerced to a number by
 other means, e.g. context or the + prefix.
 
@@ -213,7 +213,7 @@ The available operations and syntax in order of precedence are currently:
     * √ Square Root (same as ^ .5)
 * Infix Operation
     * Power
-        * ^ Exponentiation, like perl's **
+        * ^ Exponentiation, like raku's **
             * mathematical convention dictates that this operation be chained
             right-to-left, which is NYI
         * √ Root, n√x is the same as x^(1/n)

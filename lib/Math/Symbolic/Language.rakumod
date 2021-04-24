@@ -57,7 +57,7 @@ my @operations = BEGIN (
                 :parts< + >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<infix>,
                 :parts< + >
             },
@@ -78,7 +78,7 @@ my @operations = BEGIN (
                 :parts< - >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<infix>,
                 :parts< - >
             },
@@ -104,7 +104,7 @@ my @operations = BEGIN (
                 :parts< * >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<infix>,
                 :parts< * >
             },
@@ -125,7 +125,7 @@ my @operations = BEGIN (
                 :parts< / >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<infix>,
                 :parts< / >
             },
@@ -148,7 +148,7 @@ my @operations = BEGIN (
                 :parts< ^ >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<infix>,
                 :parts< ** >
             },
@@ -175,7 +175,7 @@ my @operations = BEGIN (
                 :parts< ^/ >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<infix>,
                 :parts< **1/ >
             },
@@ -193,7 +193,7 @@ my @operations = BEGIN (
                 :parts< √ >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<postfix>,
                 :parts< **.5 >
             },
@@ -216,7 +216,7 @@ my @operations = BEGIN (
                 :parts< ² >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<postfix>,
                 :parts< **2 >
             },
@@ -240,7 +240,7 @@ my @operations = BEGIN (
                 :parts< | | >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<postfix>,
                 :parts< .abs >
             },
@@ -258,7 +258,7 @@ my @operations = BEGIN (
                 :parts< - >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<prefix>,
                 :parts< - >
             },
@@ -276,7 +276,7 @@ my @operations = BEGIN (
                 :parts< ⁻¹ >
             },
             {
-                :language<perl6>,
+                :language<raku>,
                 :type<postfix>,
                 :parts< **-1 >
             },

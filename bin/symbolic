@@ -1,6 +1,4 @@
-#!/usr/bin/env perl6
-
-use v6;
+#!/usr/bin/env raku
 
 # simple command-line interface
 # a few other front ends eventually could be cool
@@ -12,7 +10,7 @@ use Math::Symbolic;
 sub MAIN (
     $expression,
     $isolate_var?,
-    Bool:D :$perl-routine = False,
+    Bool:D :$raku-routine = False,
     Bool:D :$strip-var = False,
     *%vars
 ) {
@@ -33,7 +31,7 @@ sub MAIN (
 
     $obj.simplify;
 
-    say $perl-routine ?? $obj.routine !! $obj.Str;
+    say $raku-routine ?? $obj.routine !! $obj.Str;
 }
 
 

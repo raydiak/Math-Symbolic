@@ -41,7 +41,7 @@ method expression (Str:D $var) {
     $new;
 }
 
-method code ($language = 'perl6', $tree = $!tree) {
+method code ($language = 'raku', $tree = $!tree) {
     $tree.translate: $language;
 }
 
@@ -74,7 +74,7 @@ method routine ($positional = False, $defaults? is copy, $tree = $!tree) {
     my $sig = '--> Numeric:D';
     $sig = @sig.join(', ') ~ " $sig" if @sig;
 
-    "sub ($sig) is pure \{ " ~ $tree.translate('perl6') ~ ' };';
+    "sub ($sig) is pure \{ " ~ $tree.translate('raku') ~ ' };';
 }
 
 method compile (|args) {
@@ -938,9 +938,9 @@ method dump_tree ($tree? is copy, $level = 0) {
     }
 }
 
-method perl () {
+method raku () {
     my $str = self.HOW.name(self);
-    $str ~= '.new(' ~ self.Str.perl ~ ')' if defined self;
+    $str ~= '.new(' ~ self.Str.raku ~ ')' if defined self;
     $str;
 }
 

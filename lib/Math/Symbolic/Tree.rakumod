@@ -11,7 +11,7 @@ submethod BUILD (:$!type, :$!content, :@children) {
 }
 
 method match (*%s) {
-    CATCH {die "Error in match '%s.perl()':\n$_.Str.indent(4)"};
+    CATCH {die "Error in match '%s.raku()':\n$_.Str.indent(4)"};
 
     for <type content>.grep({%s{$_}:exists}) {
         my $criteria = %s{$_};
@@ -200,13 +200,13 @@ method Str () {
 }
 
 method translate (Str:D $language is copy) {
-    $language = 'perl6' if $language eq ''|'perl';
+    $language = 'raku' if $language eq '';
     die "Error: translate to $language is not supported"
-        unless $language eq 'perl6';
+        unless $language eq 'raku';
 
     return '' unless defined self;
 
-    # it is hoped to extend this for pluggable language support, but for now is hard-coded for perl 6 only, in spite of also requiring the $language parameter
+    # it is hoped to extend this for pluggable language support, but for now is hard-coded for raku only, in spite of also requiring the $language parameter
     my $str = '';
     given $.type {
         when 'operation' {
